@@ -1,0 +1,31 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'gateway'
+    static_configs:
+      - targets: ['gateway:5000']
+
+  - job_name: 'auth-service'
+    static_configs:
+      - targets: ['auth-service:5001']
+
+  - job_name: 'product-service'
+    static_configs:
+      - targets: ['product-service:5002']
+
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['order-service:5003']
+
+  - job_name: 'shipping-service'
+    static_configs:
+      - targets: ['shipping-service:5004']
+
+  - job_name: 'mongodb'
+    static_configs:
+      - targets: ['mongodb-exporter:9216']
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
