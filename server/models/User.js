@@ -4,50 +4,79 @@ import bcrypt from 'bcryptjs';
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: true,
+    required: [true, 'Ταρακαλώ εισάγετε το όνομά σας'],
+    trim: true,
+    minlength: [2, 'Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες']
   },
   email: {
     type: String,
-    required: true,
+    required: [true, 'Παρακαλώ εισάγετε το email σας'],
     unique: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, 'Παρακαλώ εισάγετε ένα έγκυρο email']
   },
   password: {
     type: String,
-    required: true,
+    required: [true, 'Παρακαλώ εισάγετε έναν κωδικό'],
+    minlength: [6, 'Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες'],
+    select: false
   },
   role: {
     type: String,
-    enum: ['consumer', 'producer', 'admin'],
-    default: 'consumer',
+    enum: ['user', 'seller', 'producer', 'admin'],
+    default: 'user'
   },
-  privacySettings: {
-    marketingEmails: {
-      type: Boolean,
-      default: false,
-    },
-    dataSharing: {
-      type: Boolean,
-      default: false,
-    },
+  status: {
+    type: String,
+    enum: ['active', 'inactive', 'banned'],
+    default: 'active'
   },
+  avatar: {
+    type: String,
+    default: 'default-avatar.jpg'
+  },
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
-  lastLogin: {
-    type: Date,
-    default: Date.now,
+  lastLogin: Date,
+  // Seller specific fields
+  commission: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 10
   },
+  producers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Producer'
+  }],
+  // Producer specific fields
+  company: {
+    name: String,
+    vat: String,
+    address: String,
+    phone: String
+  }
 });
 
+// Encrypt password before saving
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+  if (!this.isModified('password')) {
+    next();
+  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
+// Match password
+userSchema.methods.matchPassword = async function(enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
-export default mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+
+export default User;

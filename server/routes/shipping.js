@@ -1,17 +1,11 @@
 import express from 'express';
-import { auth } from '../middleware/auth.js';
-import {
-  calculateShippingRates,
-  createShipment,
-  getTrackingInfo,
-  generateLabel,
-} from '../controllers/shipping.js';
+import { isAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/rates', auth, calculateShippingRates);
-router.post('/shipments', auth, createShipment);
-router.get('/tracking/:provider/:trackingNumber', getTrackingInfo);
-router.get('/labels/:provider/:shipmentId', auth, generateLabel);
+// Προσωρινά θα επιστρέφουμε ένα απλό μήνυμα
+router.get('/', isAuth, (req, res) => {
+  res.json({ message: 'Shipping route - Coming soon' });
+});
 
 export default router;

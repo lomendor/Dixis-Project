@@ -20,6 +20,13 @@ export const API_ENDPOINTS = {
   },
 } as const;
 
+// API Configuration
+export const API_CONFIG = {
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001/api',
+  TIMEOUT: 10000,
+  WITH_CREDENTIALS: true,
+} as const;
+
 // Pagination defaults
 export const PAGINATION = {
   DEFAULT_PAGE: 1,

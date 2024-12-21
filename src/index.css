@@ -1,104 +1,67 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 @layer base {
   html {
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    font-family: Inter, system-ui, sans-serif;
   }
+}
 
-  /* Typography */
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-serif font-semibold tracking-tight text-greek-900;
-  }
+:root {
+  --header-height: 64px;
+}
 
-  /* Base animations */
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+.logo {
+  height: 42px;
+  width: auto;
+  object-fit: contain;
+}
 
-  @keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-  }
+.header {
+  background-color: white;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  padding: 0.75rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
 
-  @keyframes scaleIn {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
-  }
+.logo-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem;
+}
 
-  /* Reusable animation classes */
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
-  }
+.logo-link:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
 
-  .animate-slide-up {
-    animation: slideUp 0.5s ease-out;
-  }
+.nav-link {
+  color: #4B5563;
+  font-weight: 500;
+  padding: 0.5rem;
+  transition: all 0.2s;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
 
-  .animate-scale-in {
-    animation: scaleIn 0.3s ease-out;
-  }
+.nav-link:hover {
+  color: #4F46E5;
+}
 
-  /* Interactive elements */
-  .interactive-hover {
-    @apply transition-all duration-300 ease-out;
-  }
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: #4F46E5;
+  transition: width 0.2s ease-in-out;
+}
 
-  .interactive-hover:hover {
-    @apply transform -translate-y-1;
-  }
-
-  .interactive-press:active {
-    @apply transform scale-95 transition-transform duration-75;
-  }
-
-  /* Loading spinner */
-  .loading-spinner {
-    @apply animate-spin rounded-full border-4 border-gray-200;
-    border-top-color: theme('colors.primary.600');
-  }
-
-  /* Page transitions */
-  .page-enter {
-    @apply opacity-0;
-  }
-
-  .page-enter-active {
-    @apply opacity-100 transition-opacity duration-300;
-  }
-
-  .page-exit {
-    @apply opacity-100;
-  }
-
-  .page-exit-active {
-    @apply opacity-0 transition-opacity duration-300;
-  }
-
-  /* Shimmer loading effect */
-  .shimmer {
-    @apply relative overflow-hidden bg-gray-100;
-  }
-
-  .shimmer::after {
-    content: '';
-    @apply absolute top-0 left-0 w-full h-full;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.4) 50%,
-      transparent 100%
-    );
-    animation: shimmer 1.5s infinite;
-  }
-
-  @keyframes shimmer {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(100%); }
-  }
+.nav-link:hover::after {
+  width: 100%;
 }

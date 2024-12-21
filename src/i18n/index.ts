@@ -39,7 +39,7 @@ i18n
         }
         return value;
       },
-    },
+    }
   });
 
 export default i18n;

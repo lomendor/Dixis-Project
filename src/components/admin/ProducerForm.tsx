@@ -1,54 +1,83 @@
 import React from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
 import { z } from 'zod';
-import api from '../../utils/api';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
+import { toast } from 'react-hot-toast';
+import api from '@/lib/api';
 
-const producerSchema = z.object({
-  name: z.string().min(2, 'Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες'),
-  businessName: z.string().min(2, 'Η επωνυμία πρέπει να έχει τουλάχιστον 2 χαρακτήρες'),
-  description: z.string().min(10, 'Η περιγραφή πρέπει να έχει τουλάχιστον 10 χαρακτήρες'),
-  location: z.string().min(2, 'Η τοποθεσία είναι υποχρεωτική'),
-  image: z.string().url('Παρακαλώ εισάγετε έγκυρο URL εικόνας'),
-  coverImage: z.string().url('Παρακαλώ εισάγετε έγκυρο URL εικόνας εξωφύλλου'),
-  email: z.string().email('Παρακαλώ εισάγετε έγκυρο email'),
-  phone: z.string().min(10, 'Παρακαλώ εισάγετε έγκυρο τηλέφωνο'),
-  website: z.string().url('Παρακαλώ εισάγετε έγκυρο URL ιστοσελίδας').optional(),
-});
+interface CustomInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const CustomInput: React.FC<CustomInputProps> = ({ label, error, className, ...props }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700">{label}</label>
+    <input
+      {...props}
+      className={`mt-1 block w-full rounded-md shadow-sm ${
+        error ? 'border-red-300' : 'border-gray-300'
+      } focus:border-primary-500 focus:ring-primary-500 ${className}`}
+    />
+    {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+  </div>
+);
+
+interface CustomButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean;
+  variant?: 'outline' | 'primary';
+}
+
+const CustomButton: React.FC<CustomButtonProps> = ({ children, loading, variant, ...props }) => (
+  <button
+    {...props}
+    className={`px-4 py-2 rounded-md ${
+      variant === 'outline'
+        ? 'border border-gray-300 hover:bg-gray-50'
+        : 'bg-primary-600 text-white hover:bg-primary-700'
+    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    disabled={loading || props.disabled}
+  >
+    {loading ? 'Φόρτωση...' : children}
+  </button>
+);
+
+interface Producer {
+  id: string;
+  name: string;
+  businessName: string;
+  description: string;
+  location: string;
+  image: string;
+}
 
 interface ProducerFormProps {
-  producer?: {
-    id: string;
-    name: string;
-    businessName: string;
-    description: string;
-    location: string;
-    image: string;
-    coverImage: string;
-    contactInfo: {
-      email: string;
-      phone: string;
-      website?: string;
-    };
-  };
+  producer?: Producer;
   onClose: () => void;
 }
+
+const producerSchema = z.object({
+  name: z.string().min(1, 'Το όνομα είναι υποχρεωτικό'),
+  businessName: z.string().min(1, 'Η επωνυμία είναι υποχρεωτική'),
+  description: z.string().min(1, 'Η περιγραφή είναι υποχρεωτική'),
+  location: z.string().min(1, 'Η τοποθεσία είναι υποχρεωτική'),
+  image: z.string().url('Μη έγκυρο URL εικόνας'),
+});
+
+type ProducerFormData = z.infer<typeof producerSchema>;
 
 export function ProducerForm({ producer, onClose }: ProducerFormProps) {
   const queryClient = useQueryClient();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ProducerFormData) => {
       if (producer) {
         return api.put(`/admin/producers/${producer.id}`, data);
       }
       return api.post('/admin/producers', data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-producers'] });
+      queryClient.invalidateQueries({ queryKey: ['producers'] });
       toast.success(producer ? 'Ο παραγωγός ενημερώθηκε' : 'Ο παραγωγός προστέθηκε');
       onClose();
     },
@@ -60,18 +89,12 @@ export function ProducerForm({ producer, onClose }: ProducerFormProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = {
-      name: formData.get('name'),
-      businessName: formData.get('businessName'),
-      description: formData.get('description'),
-      location: formData.get('location'),
-      image: formData.get('image'),
-      coverImage: formData.get('coverImage'),
-      contactInfo: {
-        email: formData.get('email'),
-        phone: formData.get('phone'),
-        website: formData.get('website'),
-      },
+    const data: ProducerFormData = {
+      name: formData.get('name') as string,
+      businessName: formData.get('businessName') as string,
+      description: formData.get('description') as string,
+      location: formData.get('location') as string,
+      image: formData.get('image') as string,
     };
 
     try {
@@ -93,7 +116,7 @@ export function ProducerForm({ producer, onClose }: ProducerFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Input
+      <CustomInput
         label="Όνομα Παραγωγού"
         name="name"
         defaultValue={producer?.name}
@@ -101,7 +124,7 @@ export function ProducerForm({ producer, onClose }: ProducerFormProps) {
         required
       />
 
-      <Input
+      <CustomInput
         label="Επωνυμία Επιχείρησης"
         name="businessName"
         defaultValue={producer?.businessName}
@@ -127,7 +150,7 @@ export function ProducerForm({ producer, onClose }: ProducerFormProps) {
         )}
       </div>
 
-      <Input
+      <CustomInput
         label="Τοποθεσία"
         name="location"
         defaultValue={producer?.location}
@@ -135,7 +158,7 @@ export function ProducerForm({ producer, onClose }: ProducerFormProps) {
         required
       />
 
-      <Input
+      <CustomInput
         label="URL Εικόνας Προφίλ"
         name="image"
         type="url"
@@ -144,51 +167,17 @@ export function ProducerForm({ producer, onClose }: ProducerFormProps) {
         required
       />
 
-      <Input
-        label="URL Εικόνας Εξωφύλλου"
-        name="coverImage"
-        type="url"
-        defaultValue={producer?.coverImage}
-        error={errors.coverImage}
-        required
-      />
-
-      <Input
-        label="Email"
-        name="email"
-        type="email"
-        defaultValue={producer?.contactInfo.email}
-        error={errors.email}
-        required
-      />
-
-      <Input
-        label="Τηλέφωνο"
-        name="phone"
-        defaultValue={producer?.contactInfo.phone}
-        error={errors.phone}
-        required
-      />
-
-      <Input
-        label="Ιστοσελίδα"
-        name="website"
-        type="url"
-        defaultValue={producer?.contactInfo.website}
-        error={errors.website}
-      />
-
       <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={onClose}>
+        <CustomButton variant="outline" onClick={onClose}>
           Ακύρωση
-        </Button>
-        <Button
+        </CustomButton>
+        <CustomButton
           type="submit"
           loading={mutation.isPending}
           disabled={mutation.isPending}
         >
           {producer ? 'Ενημέρωση' : 'Προσθήκη'} Παραγωγού
-        </Button>
+        </CustomButton>
       </div>
     </form>
   );

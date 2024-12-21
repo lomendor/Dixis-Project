@@ -1,88 +1,67 @@
 import express from 'express';
+import { authLimiter } from '../middleware/security.js';
+import { isAuth } from '../middleware/auth.js';
+import {
+  register,
+  login,
+  logout,
+  getMe,
+  forgotPassword,
+  resetPassword,
+  updatePassword,
+  updateProfile
+} from '../controllers/authController.js';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import User from '../models/User.js';
 
 const router = express.Router();
 
-// Register new user
-router.post('/register', async (req, res) => {
-  try {
-    const { name, email, password, role } = req.body;
+// Token generation functions
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRE }
+  );
+};
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+const generateRefreshToken = (user) => {
+  return jwt.sign(
+    { id: user._id },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
 
-    // Create new user
-    const user = new User({
-      name,
-      email,
-      password,
-      role: role || 'consumer',
-    });
+// Public routes
+router.post('/register', register);
+router.post('/login', authLimiter, login);
+router.post('/forgot-password', forgotPassword);
+router.put('/reset-password/:token', resetPassword);
+router.post('/logout', logout);
 
-    await user.save();
+// Protected routes
+router.use(isAuth);
+router.get('/me', getMe);
+router.put('/update-password', updatePassword);
+router.put('/update-profile', updateProfile);
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
+// Google OAuth routes - Προσωρινά απενεργοποιημένα
+/*
+router.get('/google',
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
 
-    res.status(201).json({
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      token,
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+router.get('/google/callback',
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Επιτυχής σύνδεση
+    const token = generateToken(req.user);
+    const refreshToken = generateRefreshToken(req.user);
+    
+    // Επιστροφή στο frontend με τα tokens
+    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
   }
-});
-
-// Login user
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Check password
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      token,
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-});
+);
+*/
 
 export default router;

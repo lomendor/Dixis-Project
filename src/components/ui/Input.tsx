@@ -1,59 +1,61 @@
-import React from 'react';
-import { cva, type VariantProps } from 'class-variance-authority';
+import { forwardRef, InputHTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
+import { AlertCircle } from 'lucide-react';
 
-const inputVariants = cva(
-  "rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm transition-colors focus:border-primary-500 focus:ring-primary-500",
-  {
-    variants: {
-      size: {
-        sm: "h-8 text-sm px-3",
-        md: "h-10 px-4",
-        lg: "h-12 text-lg px-6",
-      },
-      error: {
-        true: "border-red-300 focus:border-red-500 focus:ring-red-500",
-      },
-      fullWidth: {
-        true: "w-full",
-      },
-    },
-    defaultVariants: {
-      size: "md",
-    },
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  error?: string;
+  label?: string;
+}
+
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, error, label, ...props }, ref) => {
+    return (
+      <div className="relative space-y-1">
+        {label && (
+          <label className="block text-sm font-medium text-gray-700">
+            {label}
+          </label>
+        )}
+        <div className="relative">
+          <input
+            type={type}
+            className={cn(
+              "flex h-10 w-full rounded-md border bg-white px-3 py-2 text-sm transition-colors",
+              "ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium",
+              "placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+              error 
+                ? "border-red-300 text-red-900 placeholder-red-300 focus-visible:ring-red-500 pr-10" 
+                : "border-gray-200 focus-visible:ring-gray-950",
+              className
+            )}
+            ref={ref}
+            aria-invalid={error ? "true" : "false"}
+            aria-describedby={error ? `${props.name}-error` : undefined}
+            {...props}
+          />
+          {error && (
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
+            </div>
+          )}
+        </div>
+        {error && (
+          <div
+            className="mt-1.5 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2 animate-in fade-in slide-in-from-top-1 duration-200"
+            id={`${props.name}-error`}
+            role="alert"
+          >
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
+              <span className="font-medium">{error}</span>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 );
+Input.displayName = "Input";
 
-interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement>,
-    VariantProps<typeof inputVariants> {
-  label?: string;
-  error?: string;
-}
-
-export function Input({
-  className,
-  size,
-  error,
-  fullWidth,
-  label,
-  id,
-  ...props
-}: InputProps) {
-  return (
-    <div className="space-y-1">
-      {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700">
-          {label}
-        </label>
-      )}
-      <input
-        id={id}
-        className={inputVariants({ size, error: !!error, fullWidth, className })}
-        {...props}
-      />
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
-    </div>
-  );
-}
+export { Input };

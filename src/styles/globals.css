@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --header-height: 64px;
+}
+
+/* Reset Chakra UI styles */
+*, *::before, *::after {
+  border-color: #e5e7eb !important;
+}
+
+/* Base styles */
+html {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+}
+
+/* Custom styles */
+.auth-layout {
+  min-height: calc(100vh - var(--header-height));
+}
+
+/* Fix Tailwind-Chakra conflicts */
+[data-theme] * {
+  border-color: inherit;
+} 

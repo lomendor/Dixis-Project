@@ -1,0 +1,1 @@
+export { type Product, type ProductFilters, type ProductStats } from '@/types/product'; 

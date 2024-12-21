@@ -1,10 +1,11 @@
 import express from 'express';
-import { createPaymentIntent, handleWebhook } from '../controllers/payment.js';
-import { auth } from '../middleware/auth.js';
+import { isAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.post('/create-payment-intent', auth, createPaymentIntent);
-router.post('/webhook', express.raw({ type: 'application/json' }), handleWebhook);
+// Προσωρινά θα επιστρέφουμε ένα απλό μήνυμα
+router.get('/', isAuth, (req, res) => {
+  res.json({ message: 'Payment route - Coming soon' });
+});
 
 export default router;

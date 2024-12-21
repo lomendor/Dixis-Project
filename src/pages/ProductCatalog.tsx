@@ -1,11 +1,13 @@
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { sampleProducts } from '../data/sampleProducts';
-import { ProductCard } from '../components/ui/ProductCard';
-import { ProductFilters } from '../components/shop/ProductFilters';
-import { Input } from '../components/ui/Input';
-import { sampleProducers } from '../data/sampleProducers';
+import { ProductCard } from '@/components/products/ProductCard';
+import { ProductFilters } from '@/components/products/ProductFilters';
+import { Input } from '@/components/ui/Input';
+import type { Product } from '@/types/product';
+
+// Χρησιμοποιούμε τα sample data από το Products.tsx προσωρινά
+const sampleProducts: Product[] = []; // TODO: Add sample data
 
 function ProductCatalog() {
   const [searchParams] = useSearchParams();
@@ -28,7 +30,7 @@ function ProductCatalog() {
     }
 
     // Producer filter
-    if (producerId && product.producer.id !== producerId) {
+    if (producerId && product.producerId !== producerId) {
       return false;
     }
 
@@ -56,7 +58,7 @@ function ProductCatalog() {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Filters */}
         <div className="w-full md:w-64 flex-shrink-0">
-          <ProductFilters producers={sampleProducers} />
+          <ProductFilters />
         </div>
 
         {/* Products */}
@@ -66,17 +68,15 @@ function ProductCatalog() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Αναζήτηση προϊόντων..."
-              icon={<Search className="h-5 w-5 text-gray-400" />}
+              startIcon={<Search className="h-5 w-5 text-gray-400" />}
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
               <ProductCard
-                key={product.id}
+                key={product._id}
                 product={product}
-                onAddToCart={() => {}}
-                onToggleWishlist={() => {}}
               />
             ))}
           </div>

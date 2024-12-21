@@ -1,59 +1,81 @@
-// Existing types remain the same...
+// User & Auth Types
+export * from './user';
+export * from './product';
 
+// Producer Types
+export interface Producer {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: 'active' | 'inactive';
+  productsCount: number;
+}
+
+export type NewProducer = Omit<Producer, '_id'>;
+
+// Admin Stats Types
 export interface AdminStats {
   totalUsers: number;
   totalProducers: number;
+  totalProducts: number;
   totalOrders: number;
   totalRevenue: number;
   pendingVerifications: number;
   activeUsers: number;
   monthlyGrowth: {
     users: number;
-    revenue: number;
     orders: number;
+    revenue: number;
   };
+  recentOrders: Array<{
+    id: string;
+    customerName: string;
+    total: number;
+    status: string;
+    date: string;
+  }>;
+  topProducts: Array<{
+    id: string;
+    name: string;
+    sales: number;
+    revenue: number;
+  }>;
 }
 
-export interface ProducerApplication {
-  id: string;
-  userId: string;
-  companyName: string;
-  description: string;
-  documents: {
-    type: string;
-    url: string;
-  }[];
-  status: 'pending' | 'approved' | 'rejected';
-  submittedAt: string;
-  reviewedAt?: string;
-  reviewedBy?: string;
-  notes?: string;
+// Common Types
+export interface PaginationParams {
+  page: number;
+  limit: number;
 }
 
-export interface Announcement {
-  id: string;
-  title: string;
-  content: string;
-  type: 'info' | 'warning' | 'success';
-  audience: 'all' | 'producers' | 'consumers';
-  active: boolean;
-  createdAt: string;
-  expiresAt?: string;
+export interface SortParams {
+  field: string;
+  order: 'asc' | 'desc';
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  description: string;
-  slug: string;
-  parentId?: string;
-  image?: string;
-  active: boolean;
-  productsCount: number;
+export interface FilterParams {
+  [key: string]: any;
 }
 
-export interface AdminUser extends User {
-  role: 'admin';
-  permissions: string[];
-  lastLogin: string;
+export interface QueryParams extends PaginationParams, Partial<SortParams> {
+  filters?: FilterParams;
+  search?: string;
+}
+
+// API Response Types
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  error?: string;
+}
+
+export interface PaginatedResponse<T> extends ApiResponse<T[]> {
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+  };
 }

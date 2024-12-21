@@ -1,0 +1,6 @@
+Cannot find module '@/components/admin/dashboard/StatsCards'
+Cannot find module '@/components/admin/dashboard/SalesChart'
+Cannot find module '@/components/admin/dashboard/OrdersTable'
+Cannot find module '@/components/admin/dashboard/TopProducers'
+Cannot find module '@/components/admin/dashboard/ProductDistribution'
+Cannot find module '@/hooks/useAdminStats' 

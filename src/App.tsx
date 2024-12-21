@@ -1,68 +1,65 @@
-import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
+import { ChakraProvider } from '@chakra-ui/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'react-hot-toast';
-import MainLayout from './components/layout/MainLayout';
-import AdminLayout from './components/admin/Layout';
-import Home from './pages/Home';
-import ProductCatalog from './pages/ProductCatalog';
-import ProductDetails from './pages/ProductDetails';
-import ProducerProfile from './pages/ProducerProfile';
-import Producers from './pages/Producers';
-import Cart from './pages/Cart';
-import Auth from './pages/Auth';
-import About from './pages/About';
-
-// Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminProducts from './pages/admin/Products';
-import AdminProducers from './pages/admin/Producers';
-import AdminOrders from './pages/admin/Orders';
-import AdminUsers from './pages/admin/Users';
-import AdminContent from './pages/admin/Content';
-import AdminReports from './pages/admin/Reports';
+import { Suspense } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+import { Spinner, Box, Text } from '@chakra-ui/react';
+import theme from './theme';
+import AppRoutes from './Routes';
+import { CartProvider } from './context/CartContext';
+import { AuthProvider } from './context/AuthContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60000,
-      cacheTime: 300000,
-      retry: 1,
       refetchOnWindowFocus: false,
-    },
-  },
+      retry: 1,
+      staleTime: 5 * 60 * 1000 // 5 minutes
+    }
+  }
 });
+
+function LoadingFallback() {
+  return (
+    <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+      <Spinner size="xl" />
+    </Box>
+  );
+}
+
+function ErrorFallback({ error }: { error: Error }) {
+  return (
+    <Box 
+      display="flex" 
+      flexDirection="column" 
+      justifyContent="center" 
+      alignItems="center" 
+      height="100vh"
+      p={4}
+    >
+      <Text fontSize="xl" mb={4}>Κάτι πήγε στραβά:</Text>
+      <Text color="red.500">{error.message}</Text>
+    </Box>
+  );
+}
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <Routes>
-        {/* Main Routes */}
-        <Route element={<MainLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<ProductCatalog />} />
-          <Route path="/products/:id" element={<ProductDetails />} />
-          <Route path="/producers" element={<Producers />} />
-          <Route path="/producers/:id" element={<ProducerProfile />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/about" element={<About />} />
-        </Route>
-
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="producers" element={<AdminProducers />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="content" element={<AdminContent />} />
-          <Route path="reports" element={<AdminReports />} />
-        </Route>
-      </Routes>
-      <Toaster position="top-right" />
-    </QueryClientProvider>
+    <BrowserRouter>
+      <QueryClientProvider client={queryClient}>
+        <ChakraProvider theme={theme}>
+          <ErrorBoundary FallbackComponent={ErrorFallback}>
+            <Suspense fallback={<LoadingFallback />}>
+              <AuthProvider>
+                <CartProvider>
+                  <AppRoutes />
+                </CartProvider>
+              </AuthProvider>
+            </Suspense>
+          </ErrorBoundary>
+        </ChakraProvider>
+      </QueryClientProvider>
+    </BrowserRouter>
   );
 }
 

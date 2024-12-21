@@ -9,14 +9,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Format currency values
+ * Formats a number as currency in EUR
  */
-export function formatCurrency(amount: number, currency = 'EUR'): string {
+export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('el-GR', {
     style: 'currency',
-    currency,
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
-}
+};
 
 /**
  * Validate email format

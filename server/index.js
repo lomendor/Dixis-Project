@@ -1,71 +1,66 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import {
-  limiter,
-  authLimiter,
-  securityHeaders,
-  corsOptions,
-  compressionOptions,
-} from './middleware/security.js';
-import compression from 'compression';
-import xss from 'xss-clean';
-import hpp from 'hpp';
-import mongoSanitize from 'express-mongo-sanitize';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import authRoutes from './routes/auth.js';
 import productRoutes from './routes/products.js';
-import orderRoutes from './routes/orders.js';
+import categoryRoutes from './routes/categories.js';
+import permissionsRoutes from './routes/permissions.js';
 
 dotenv.config();
 
 const app = express();
 
-// Security Middleware
-app.use(securityHeaders);
-app.use(cors(corsOptions));
-app.use(compression(compressionOptions));
+// Basic middleware
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : /http:\/\/localhost:(5173|5174|5175|5176|5177|5178|5179|5180)/,
+  credentials: true
+}));
 app.use(express.json({ limit: '10kb' }));
-app.use(mongoSanitize());
-app.use(xss());
-app.use(hpp());
-
-// Rate Limiting
-app.use('/api/', limiter);
-app.use('/api/auth/', authLimiter);
-
-// Trust proxy for secure cookies
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/orders', orderRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/permissions', permissionsRoutes);
 
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.status || 500).json({
-    message: err.message || 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+    message: err.message || 'Internal server error'
   });
 });
 
-// MongoDB connection with optimized settings
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  autoIndex: false,
-  maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-  family: 4,
-})
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+const PORT = process.env.PORT || 3001;
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/dixis');
+    console.log('Connected to MongoDB');
+
+    const server = app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Trying port ${PORT + 1}`);
+        server.close();
+        app.listen(PORT + 1);
+      } else {
+        console.error('Server error:', error);
+      }
+    });
+
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+startServer();

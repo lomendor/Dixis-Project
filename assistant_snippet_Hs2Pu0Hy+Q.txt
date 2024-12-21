@@ -1,0 +1,8 @@
+1|/src/components
+2|  /ui              - Βασικά UI components (Button, Input, Modal, etc)
+3|  /common          - Επαναχρησιμοποιήσιμα components (Header, Footer, etc)
+4|  /layout          - Layout components
+5|  /forms           - Form-related components
+6|  /modals          - Modal components
+7|  /tables          - Table components
+8|  /charts          - Chart components 

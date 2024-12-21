@@ -7,6 +7,24 @@ import api from '../../utils/api';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 
+interface CustomInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label: string;
+  error?: string;
+}
+
+const CustomInput: React.FC<CustomInputProps> = ({ label, error, className, ...props }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700">{label}</label>
+    <input
+      {...props}
+      className={`mt-1 block w-full rounded-md shadow-sm ${
+        error ? 'border-red-300' : 'border-gray-300'
+      } focus:border-primary-500 focus:ring-primary-500 ${className}`}
+    />
+    {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+  </div>
+);
+
 const productSchema = z.object({
   name: z.string().min(2, 'Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες'),
   description: z.string().min(10, 'Η περιγραφή πρέπει να έχει τουλάχιστον 10 χαρακτήρες'),
@@ -15,6 +33,8 @@ const productSchema = z.object({
   category: z.string().min(1, 'Παρακαλώ επιλέξτε κατηγορία'),
   images: z.array(z.string().url()).min(1, 'Προσθέστε τουλάχιστον μία εικόνα'),
 });
+
+type ProductFormData = z.infer<typeof productSchema>;
 
 interface ProductFormProps {
   product?: {
@@ -29,6 +49,25 @@ interface ProductFormProps {
   onClose: () => void;
 }
 
+interface CustomButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  loading?: boolean;
+  variant?: 'outline' | 'primary';
+}
+
+const CustomButton: React.FC<CustomButtonProps> = ({ children, loading, variant, ...props }) => (
+  <button
+    {...props}
+    className={`px-4 py-2 rounded-md ${
+      variant === 'outline'
+        ? 'border border-gray-300 hover:bg-gray-50'
+        : 'bg-primary-600 text-white hover:bg-primary-700'
+    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+    disabled={loading || props.disabled}
+  >
+    {loading ? 'Φόρτωση...' : children}
+  </button>
+);
+
 export function ProductForm({ product, onClose }: ProductFormProps) {
   const queryClient = useQueryClient();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
@@ -36,7 +75,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
   const [newImageUrl, setNewImageUrl] = React.useState('');
 
   const mutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: ProductFormData) => {
       if (product) {
         return api.put(`/producer/products/${product.id}`, data);
       }
@@ -55,7 +94,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const data = {
+    const data: ProductFormData = {
       name: formData.get('name') as string,
       description: formData.get('description') as string,
       price: parseFloat(formData.get('price') as string),
@@ -94,7 +133,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Input
+      <CustomInput
         label="Όνομα Προϊόντος"
         name="name"
         defaultValue={product?.name}
@@ -121,7 +160,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        <Input
+        <CustomInput
           label="Τιμή (€)"
           name="price"
           type="number"
@@ -131,7 +170,7 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
           required
         />
 
-        <Input
+        <CustomInput
           label="Απόθεμα"
           name="stock"
           type="number"
@@ -171,19 +210,20 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
         </label>
         <div className="mt-2 space-y-4">
           <div className="flex gap-2">
-            <Input
+            <CustomInput
+              label="URL εικόνας"
               value={newImageUrl}
               onChange={(e) => setNewImageUrl(e.target.value)}
               placeholder="URL εικόνας"
               className="flex-grow"
             />
-            <Button
+            <CustomButton
               type="button"
               onClick={handleAddImage}
               disabled={!newImageUrl}
             >
               <Plus className="h-5 w-5" />
-            </Button>
+            </CustomButton>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -221,16 +261,16 @@ export function ProductForm({ product, onClose }: ProductFormProps) {
       </div>
 
       <div className="flex justify-end gap-4">
-        <Button variant="outline" onClick={onClose}>
+        <CustomButton variant="outline" onClick={onClose}>
           Ακύρωση
-        </Button>
-        <Button
+        </CustomButton>
+        <CustomButton
           type="submit"
           loading={mutation.isPending}
           disabled={mutation.isPending}
         >
           {product ? 'Ενημέρωση' : 'Προσθήκη'} Προϊόντος
-        </Button>
+        </CustomButton>
       </div>
     </form>
   );

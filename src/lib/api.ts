@@ -1,67 +1,82 @@
 import axios from 'axios';
-import { toast } from 'react-hot-toast';
+import { handleApiError, showErrorToast } from '@/utils/errorHandling';
+import { ERROR_MESSAGES } from '@/types/errors';
 
-const api = axios.create({
-  baseURL: '/api',
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001') + '/api';
+
+export const api = axios.create({
+  baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
-  },
-  // Add CSRF token if available
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
-  // Timeout after 10 seconds
-  timeout: 10000,
+    'Content-Type': 'application/json'
+  }
 });
 
 // Request interceptor
 api.interceptors.request.use(
-  config => {
-    const token = localStorage.getItem('token');
+  (config) => {
+    const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+    const token = authStorage.state?.token;
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
     }
     return config;
   },
-  error => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(handleApiError(error))
 );
 
 // Response interceptor
 api.interceptors.response.use(
-  response => response,
-  error => {
-    // Handle network errors
-    if (!error.response) {
-      toast.error('Network error. Please check your connection.');
-      return Promise.reject(error);
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Handle token refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const authStorage = JSON.parse(localStorage.getItem('auth-storage') || '{}');
+        const refreshToken = authStorage.state?.refreshToken;
+        
+        if (!refreshToken) {
+          throw error;
+        }
+
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          refreshToken
+        });
+
+        const { token } = response.data;
+        const newAuthStorage = {
+          ...authStorage,
+          state: {
+            ...authStorage.state,
+            token
+          }
+        };
+        localStorage.setItem('auth-storage', JSON.stringify(newAuthStorage));
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+
+        return api(originalRequest);
+      } catch (refreshError) {
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/login';
+        return Promise.reject(handleApiError(refreshError));
+      }
     }
 
-    // Handle authentication errors
-    if (error.response.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/auth';
-      toast.error('Session expired. Please log in again.');
-      return Promise.reject(error);
+    // Handle 404 errors
+    if (error.response?.status === 404) {
+      return Promise.reject({
+        code: 'NOT_FOUND',
+        message: ERROR_MESSAGES.NOT_FOUND
+      });
     }
 
-    // Handle rate limiting
-    if (error.response.status === 429) {
-      toast.error('Too many requests. Please try again later.');
-      return Promise.reject(error);
-    }
-
-    // Handle server errors
-    if (error.response.status >= 500) {
-      toast.error('Server error. Please try again later.');
-      return Promise.reject(error);
-    }
-
-    // Handle other errors
-    const message = error.response?.data?.message || 'An error occurred';
-    toast.error(message);
-    return Promise.reject(error);
+    const apiError = handleApiError(error);
+    showErrorToast(apiError);
+    return Promise.reject(apiError);
   }
 );
-
-export default api;

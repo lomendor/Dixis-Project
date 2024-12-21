@@ -1,9 +1,8 @@
-import React from 'react';
 import { Heart } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
-import { useAuth } from '../../stores/authStore';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 interface WishlistButtonProps {
   productId: string;

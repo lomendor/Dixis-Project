@@ -4,9 +4,9 @@ import { toast } from 'react-hot-toast';
 import { Dialog } from '@headlessui/react';
 import { AlertTriangle } from 'lucide-react';
 import api from '../../utils/api';
-import { useAuth } from '../../stores/authStore';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
-function AccountDeletion() {
+export function AccountDeletion() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
   const navigate = useNavigate();
