@@ -1,10 +1,13 @@
-import User from '../models/User.js';
-import Product from '../models/Product.js';
-import Order from '../models/Order.js';
-import Producer from '../models/Producer.js';
+import { Response } from 'express';
+import User from '../models/User';
+import Product from '../models/Product';
+import Order from '../models/Order';
+import Producer from '../models/Producer';
+import { AdminRequest, DashboardStats } from '../../src/types/controllers/admin.types';
+import { LeanOrder } from '../../src/types/models/order.types';
 
 // Get admin dashboard stats
-export const getStats = async (req, res) => {
+export const getStats = async (req: AdminRequest, res: Response) => {
   try {
     // Check if user is admin
     if (req.user.role !== 'admin') {
@@ -61,7 +64,7 @@ export const getStats = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(5)
       .populate('user', 'name')
-      .lean()
+      .lean<LeanOrder>()
       .then(orders => orders.map(order => ({
         id: order._id.toString(),
         orderNumber: order.orderNumber || `ORD-${order._id.toString().slice(-6)}`,
@@ -125,21 +128,23 @@ export const getStats = async (req, res) => {
       }
     ]);
 
+    const stats: DashboardStats = {
+      overview: {
+        totalOrders,
+        totalProducts,
+        totalProducers,
+        totalUsers,
+        revenue
+      },
+      monthlySales,
+      recentOrders,
+      topProducers,
+      productDistribution
+    };
+
     res.json({
       status: 'success',
-      data: {
-        overview: {
-          totalOrders,
-          totalProducts,
-          totalProducers,
-          totalUsers,
-          revenue
-        },
-        monthlySales,
-        recentOrders,
-        topProducers,
-        productDistribution
-      }
+      data: stats
     });
   } catch (error) {
     console.error('Get admin stats error:', error);
@@ -148,4 +153,4 @@ export const getStats = async (req, res) => {
       message: 'Σφάλμα κατά την ανάκτηση των στατιστικών'
     });
   }
-}; 
+};

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { checkPermission } from '../middleware/permissionsMiddleware';
-import { authMiddleware } from '../middleware/authMiddleware.js';
-import * as productController from '../controllers/productController.js';
+import { authMiddleware } from '../middleware/authMiddleware';
+import * as productController from '../controllers/productController';
 
 const router = Router();
 

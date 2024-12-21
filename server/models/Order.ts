@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { OrderDocument, OrderStatus, PaymentMethod, PaymentStatus } from '../../src/types/models/order.types';
 
 const orderSchema = new mongoose.Schema({
   user: {
@@ -30,8 +31,8 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'completed', 'cancelled'],
-    default: 'pending',
+    enum: Object.values(OrderStatus),
+    default: OrderStatus.Pending,
   },
   shippingAddress: {
     street: String,
@@ -41,13 +42,13 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['card', 'cash', 'bank_transfer'],
+    enum: Object.values(PaymentMethod),
     required: true,
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'completed', 'failed'],
-    default: 'pending',
+    enum: Object.values(PaymentStatus),
+    default: PaymentStatus.Pending,
   },
   createdAt: {
     type: Date,
@@ -65,6 +66,6 @@ orderSchema.pre('save', function(next) {
   next();
 });
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.model<OrderDocument>('Order', orderSchema);
 
 export default Order;

@@ -1,4 +1,5 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+import { CategoryDocument } from '../../src/types/models/category.types';
 
 const categorySchema = new mongoose.Schema({
   name: {
@@ -48,7 +49,7 @@ categorySchema.virtual('children', {
 });
 
 // Pre-save middleware to generate slug
-categorySchema.pre('save', function(next) {
+categorySchema.pre('save', function(this: CategoryDocument, next) {
   if (this.isModified('name')) {
     this.slug = this.name
       .toLowerCase()
@@ -64,4 +65,6 @@ categorySchema.index({ slug: 1 });
 categorySchema.index({ parent: 1 });
 categorySchema.index({ order: 1 });
 
-module.exports = mongoose.model('Category', categorySchema); 
+const Category = mongoose.model<CategoryDocument>('Category', categorySchema);
+
+export default Category;

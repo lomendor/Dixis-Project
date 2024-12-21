@@ -1,17 +1,114 @@
+import { Response } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import User from '../models/User.js';
-import { sendEmail } from '../utils/email.js';
+import User from '../models/User';
+import { sendEmail } from '../utils/email';
+import {
+  RegisterRequest,
+  LoginRequest,
+  AuthenticatedRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  UpdatePasswordRequest,
+  UpdateProfileRequest,
+  TokenPayload
+} from '../../src/types/controllers/auth.types';
+import { UserRole, UserStatus } from '../../src/types/models/user.types';
 
 // Generate JWT Token
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+export const generateToken = (id: string): string => {
+  return jwt.sign({ id }, process.env.JWT_SECRET!, {
     expiresIn: process.env.JWT_EXPIRES_IN
   });
 };
 
+// Generate Refresh Token
+export const generateRefreshToken = (id: string): string => {
+  return jwt.sign({ id }, process.env.JWT_SECRET!, {
+    expiresIn: '7d'
+  });
+};
+
+// Update password
+export const updatePassword = async (req: UpdatePasswordRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user._id).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Ο χρήστης δεν βρέθηκε'
+      });
+    }
+
+    // Check current password
+    const isMatch = await user.comparePassword(req.body.currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Ο τρέχων κωδικός είναι λάθος'
+      });
+    }
+
+    // Update password
+    user.password = req.body.newPassword;
+    await user.save();
+
+    // Generate new token
+    const token = generateToken(user._id.toString());
+
+    res.json({
+      status: 'success',
+      token,
+      message: 'Ο κωδικός άλλαξε επιτυχώς'
+    });
+  } catch (error) {
+    console.error('Update password error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Σφάλμα κατά την αλλαγή κωδικού'
+    });
+  }
+};
+
+// Update profile
+export const updateProfile = async (req: UpdateProfileRequest, res: Response) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      {
+        name: req.body.name,
+        email: req.body.email,
+        avatar: req.body.avatar
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Ο χρήστης δεν βρέθηκε'
+      });
+    }
+
+    res.json({
+      status: 'success',
+      data: user,
+      message: 'Το προφίλ ενημερώθηκε επιτυχώς'
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Σφάλμα κατά την ενημέρωση του προφίλ'
+    });
+  }
+};
+
 // Register new user
-export const register = async (req, res) => {
+export const register = async (req: RegisterRequest, res: Response) => {
   try {
     const { email } = req.body;
 
@@ -27,11 +124,11 @@ export const register = async (req, res) => {
     // Create user
     const user = await User.create({
       ...req.body,
-      status: 'active'
+      status: UserStatus.Active
     });
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id.toString());
 
     // Remove password from output
     user.password = undefined;
@@ -51,7 +148,7 @@ export const register = async (req, res) => {
 };
 
 // Login user
-export const login = async (req, res) => {
+export const login = async (req: LoginRequest, res: Response) => {
   try {
     const { email, password } = req.body;
     console.log('Login attempt:', { email });
@@ -88,7 +185,7 @@ export const login = async (req, res) => {
     }
 
     // Check if user is active
-    if (user.status !== 'active') {
+    if (user.status !== UserStatus.Active) {
       return res.status(401).json({
         status: 'error',
         message: 'Ο λογαριασμός σας έχει απενεργοποιηθεί'
@@ -97,15 +194,15 @@ export const login = async (req, res) => {
 
     // Generate tokens
     const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      { id: user._id.toString(), role: user.role },
+      process.env.JWT_SECRET!,
       { expiresIn: '1d' }
     );
 
     // Generate refresh token
     const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_SECRET,
+      { id: user._id.toString() },
+      process.env.JWT_SECRET!,
       { expiresIn: '7d' }
     );
 
@@ -142,7 +239,7 @@ export const login = async (req, res) => {
 };
 
 // Logout user
-export const logout = (req, res) => {
+export const logout = (_req: AuthenticatedRequest, res: Response) => {
   res.cookie('token', 'none', {
     expires: new Date(Date.now() + 10 * 1000),
     httpOnly: true
@@ -155,9 +252,9 @@ export const logout = (req, res) => {
 };
 
 // Get current user
-export const getMe = async (req, res) => {
+export const getMe = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user._id);
 
     res.json({
       status: 'success',
@@ -173,7 +270,7 @@ export const getMe = async (req, res) => {
 };
 
 // Forgot password
-export const forgotPassword = async (req, res) => {
+export const forgotPassword = async (req: ForgotPasswordRequest, res: Response) => {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user) {
@@ -189,7 +286,7 @@ export const forgotPassword = async (req, res) => {
       .createHash('sha256')
       .update(resetToken)
       .digest('hex');
-    user.resetPasswordExpire = Date.now() + 30 * 60 * 1000; // 30 minutes
+    user.resetPasswordExpire = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
 
     await user.save({ validateBeforeSave: false });
 
@@ -220,9 +317,12 @@ export const forgotPassword = async (req, res) => {
     console.error('Forgot password error:', error);
     
     // Clear reset tokens
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpire = undefined;
-    await user.save({ validateBeforeSave: false });
+    const user = await User.findOne({ email: req.body.email });
+    if (user) {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpire = undefined;
+      await user.save({ validateBeforeSave: false });
+    }
 
     res.status(500).json({
       status: 'error',
@@ -232,7 +332,7 @@ export const forgotPassword = async (req, res) => {
 };
 
 // Reset password
-export const resetPassword = async (req, res) => {
+export const resetPassword = async (req: ResetPasswordRequest, res: Response) => {
   try {
     // Get hashed token
     const resetPasswordToken = crypto
@@ -248,7 +348,7 @@ export const resetPassword = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         status: 'error',
-        message: 'Μη έγκυρο ή ληγμένο token επαναφοράς'
+        message: 'Μη έγκυρος ή ληγμένος σύνδεσμος επαναφοράς'
       });
     }
 
@@ -259,12 +359,11 @@ export const resetPassword = async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id);
+    const token = generateToken(user._id.toString());
 
     res.json({
       status: 'success',
-      token,
-      message: 'Ο κωδικός σας άλλαξε επιτυχώς'
+      token
     });
   } catch (error) {
     console.error('Reset password error:', error);
@@ -274,77 +373,3 @@ export const resetPassword = async (req, res) => {
     });
   }
 };
-
-// Update password
-export const updatePassword = async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('+password');
-
-    // Check current password
-    if (!(await user.comparePassword(req.body.currentPassword))) {
-      return res.status(401).json({
-        status: 'error',
-        message: 'Ο τρέχων κωδικός είναι λάθος'
-      });
-    }
-
-    // Update password
-    user.password = req.body.newPassword;
-    await user.save();
-
-    // Generate token
-    const token = generateToken(user._id);
-
-    res.json({
-      status: 'success',
-      token,
-      message: 'Ο κωδικός σας ενημερώθηκε επιτυχώς'
-    });
-  } catch (error) {
-    console.error('Update password error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Σφάλμα κατά την ενημέρωση του κωδικού'
-    });
-  }
-};
-
-// Update profile
-export const updateProfile = async (req, res) => {
-  try {
-    // Prevent password update
-    if (req.body.password) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Αυτή η διαδρομή δεν είναι για ενημέρωση κωδικού'
-      });
-    }
-
-    // Update user
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
-      {
-        name: req.body.name,
-        email: req.body.email,
-        phone: req.body.phone,
-        address: req.body.address
-      },
-      {
-        new: true,
-        runValidators: true
-      }
-    );
-
-    res.json({
-      status: 'success',
-      data: user,
-      message: 'Το προφίλ σας ενημερώθηκε επιτυχώς'
-    });
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({
-      status: 'error',
-      message: 'Σφάλμα κατά την ενημέρωση του προφίλ'
-    });
-  }
-}; 

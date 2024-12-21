@@ -1,117 +1,54 @@
 import { Types } from 'mongoose';
 import { BaseDocument } from './base.types';
+import { UserDocument } from './user.types';
+import { ProductDocument } from './product.types';
 
-export interface ProducerCertification {
-  _id?: Types.ObjectId;
+export enum ProducerStatus {
+  Active = 'active',
+  Inactive = 'inactive',
+  Pending = 'pending'
+}
+
+export interface ProducerAddress {
+  street: string;
+  city: string;
+  postalCode: string;
+  country: string;
+}
+
+export interface CompanyInfo {
   name: string;
-  issuer: string;
-  validUntil: Date;
-  documentUrl: string;
-  status: 'active' | 'expired' | 'pending';
+  vat: string;
+  description: string;
 }
 
 export interface ProducerDocument extends BaseDocument {
   name: string;
-  description?: string;
   email: string;
-  phone: string;
-  location?: string;
-  address?: {
-    street: string;
-    city: string;
-    region: string;
-    postalCode: string;
-  };
-  status: 'active' | 'inactive' | 'pending';
-  productsCount: number;
-  rating?: number;
-  reviews?: Array<{
-    userId: Types.ObjectId;
-    rating: number;
-    comment: string;
-    createdAt: Date;
-  }>;
-  logo?: string;
-  coverImage?: string;
-  socialMedia?: {
-    facebook?: string;
-    instagram?: string;
-    twitter?: string;
-  };
-  businessInfo?: {
-    taxId: string;
-    registrationNumber: string;
-    businessType: string;
-  };
-  certifications: ProducerCertification[];
-  documents: Array<{
-    _id?: Types.ObjectId;
-    name: string;
-    type: string;
-    url: string;
-    status: 'pending' | 'approved' | 'rejected';
-    uploadedAt: Date;
-    expiresAt?: Date;
-    comments?: Array<{
-      text: string;
-      date: Date;
-    }>;
-  }>;
-  operatingHours?: {
-    [key: string]: {
-      open: string;
-      close: string;
-    };
-  };
-  statusHistory: Array<{
-    status: string;
-    comment?: string;
-    date: Date;
-  }>;
-}
-
-export interface UpdateProducerBody {
-  name?: string;
-  description?: string;
-  email?: string;
   phone?: string;
-  location?: string;
-  address?: ProducerDocument['address'];
-  status?: 'active' | 'inactive' | 'pending';
-  logo?: string;
-  coverImage?: string;
-  socialMedia?: ProducerDocument['socialMedia'];
-  businessInfo?: ProducerDocument['businessInfo'];
-  certifications?: ProducerDocument['certifications'];
-  operatingHours?: ProducerDocument['operatingHours'];
+  address: ProducerAddress;
+  company: CompanyInfo;
+  products: Types.ObjectId[];
+  seller: Types.ObjectId;
+  commission: number;
+  status: ProducerStatus;
+  profileImage?: string;
+  productsCount: number; // Virtual
 }
 
-export interface AssignProducerBody {
-  userId: Types.ObjectId;
-  producerId: Types.ObjectId;
-}
-
-export interface ReviewApplicationBody {
-  status: 'approved' | 'rejected';
-  feedback?: string;
-}
-
-export interface PopulatedProducer extends ProducerDocument {
-  products: Array<{
-    _id: Types.ObjectId;
-    name: string;
-    price: number;
-    status: string;
-  }>;
-  managers: Array<{
-    _id: Types.ObjectId;
-    name: string;
-    email: string;
-  }>;
-}
-
-export type Producer = Omit<ProducerDocument, keyof BaseDocument> & {
+export interface Producer {
   _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  address: ProducerAddress;
+  company: CompanyInfo;
+  products: string[];
+  seller: string;
+  commission: number;
+  status: ProducerStatus;
+  profileImage?: string;
   createdAt: string;
   updatedAt: string;
-}; 
+  productsCount: number;
+} 

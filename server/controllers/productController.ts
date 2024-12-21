@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { SortOrder } from 'mongoose';
-import Product from '../models/Product.js';
+import Product from '../models/Product';
 import { uploadToCloudinary, deleteFromCloudinary } from '../utils/cloudinary.js';
 import { RequestHandler } from 'express';
+import { ProductDocument, ProductStatus, ProductImage, ProductCategory } from '../../src/types/models/product.types';
 
 interface ProductData {
   id?: string;
@@ -10,8 +11,8 @@ interface ProductData {
   description: string;
   price: number;
   images?: string[];
-  category?: string;
-  status?: 'active' | 'inactive' | 'outOfStock';
+  category?: ProductCategory;
+  status?: ProductStatus;
   stock?: number;
 }
 
@@ -56,7 +57,7 @@ export const getProducts: RequestHandler = async (req, res) => {
       .sort(sortObj)
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit))
-      .populate('producerId', 'name');
+      .populate('producerId');
 
     const count = await Product.countDocuments(query);
 
@@ -74,7 +75,7 @@ export const getProducts: RequestHandler = async (req, res) => {
 export const getProduct: RequestHandler = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id)
-      .populate('producerId', 'name');
+      .populate('producerId');
     
     if (!product) {
       res.status(404).json({ message: 'Το προϊόν δεν βρέθηκε' });
@@ -105,8 +106,7 @@ export const createProduct: RequestHandler = async (req, res) => {
       productData.images = imageUrls;
     }
 
-    const product = new Product(productData);
-    await product.save();
+    const product = await Product.create(productData);
     
     res.status(201).json(product);
   } catch (error) {
@@ -175,7 +175,7 @@ export const deleteProduct: RequestHandler = async (req, res) => {
       }
     }
 
-    await product.deleteOne();
+    await Product.deleteOne({ _id: req.params.id });
     res.json({ message: 'Το προϊόν διαγράφηκε επιτυχώς' });
   } catch (error) {
     res.status(500).json({ message: error instanceof Error ? error.message : 'Σφάλμα κατά τη διαγραφή προϊόντος' });
@@ -193,13 +193,18 @@ export const updateStock: RequestHandler = async (req, res) => {
       return;
     }
 
-    product.stock = stock;
-    if (stock === 0) {
-      product.status = 'outOfStock';
-    }
+    const updatedProduct = await Product.findByIdAndUpdate(
+      req.params.id,
+      { 
+        $set: { 
+          stock,
+          status: stock === 0 ? ProductStatus.OutOfStock : product.status 
+        }
+      },
+      { new: true }
+    );
 
-    await product.save();
-    res.json(product);
+    res.json(updatedProduct);
   } catch (error) {
     res.status(400).json({ message: error instanceof Error ? error.message : 'Σφάλμα κατά την ενημέρωση αποθέματος' });
   }

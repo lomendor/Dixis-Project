@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { ProducerDocument, ProducerStatus } from '../../src/types/models/producer.types';
 
 const producerSchema = new mongoose.Schema({
   name: {
@@ -34,7 +35,8 @@ const producerSchema = new mongoose.Schema({
   }],
   seller: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    required: [true, 'Ο πωλητής είναι υποχρεωτικός']
   },
   commission: {
     type: Number,
@@ -44,21 +46,21 @@ const producerSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'pending'],
-    default: 'active'
+    enum: Object.values(ProducerStatus),
+    default: ProducerStatus.Active
   },
-  profileImage: String,
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
+  profileImage: String
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Virtual για υπολογισμό αριθμού προϊόντων
-producerSchema.virtual('productsCount').get(function() {
+producerSchema.virtual('productsCount').get(function(this: ProducerDocument) {
   return this.products ? this.products.length : 0;
 });
 
-const Producer = mongoose.model('Producer', producerSchema);
+const Producer = mongoose.model<ProducerDocument>('Producer', producerSchema);
 
-export default Producer; 
+export default Producer;

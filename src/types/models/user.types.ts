@@ -1,47 +1,42 @@
-import { Types } from 'mongoose';
-import { BaseDocument } from './base.types';
-import { UserRole, Permission } from '../common/permissions.types';
+import { Document, Types } from 'mongoose';
 
-export interface UserDocument extends BaseDocument {
+export enum UserRole {
+  User = 'user',
+  Admin = 'admin',
+  Producer = 'producer'
+}
+
+export enum UserStatus {
+  Active = 'active',
+  Inactive = 'inactive',
+  Banned = 'banned'
+}
+
+export interface UserDocument extends Document {
+  _id: Types.ObjectId;
   name: string;
   email: string;
   password: string;
   role: UserRole;
-  permissions?: Permission[];
-  status: 'active' | 'inactive';
+  status: UserStatus;
   avatar?: string;
-  bio?: string;
-  location?: string;
-  phone?: string;
-  managedProducers?: Types.ObjectId[];
-  settings?: {
-    notifications: {
-      email: boolean;
-      push: boolean;
-      sms: boolean;
-    };
-    language: string;
-    currency: string;
-    timezone: string;
-  };
-  preferences?: {
-    theme: 'light' | 'dark' | 'system';
-    emailNotifications: boolean;
-    pushNotifications: boolean;
-    newsletter: boolean;
-  };
+  resetPasswordToken?: string;
+  resetPasswordExpire?: Date;
+  lastLogin?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
 export interface UpdateUserBody {
   name?: string;
   email?: string;
   role?: UserRole;
-  permissions?: Permission[];
-  status?: 'active' | 'inactive';
+  status?: UserStatus;
   avatar?: string;
-  bio?: string;
-  location?: string;
-  phone?: string;
+  resetPasswordToken?: string;
+  resetPasswordExpire?: Date;
+  lastLogin?: Date;
   settings?: Partial<UserDocument['settings']>;
   preferences?: Partial<UserDocument['preferences']>;
 }

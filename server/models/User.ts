@@ -1,10 +1,11 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { UserDocument } from '../../src/types/models/user.types';
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Ταρακαλώ εισάγετε το όνομά σας'],
+    required: [true, 'Παρακαλώ εισάγετε το όνομά σας'],
     trim: true,
     minlength: [2, 'Το όνομα πρέπει να έχει τουλάχιστον 2 χαρακτήρες']
   },
@@ -29,12 +30,39 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'banned'],
+    enum: ['active', 'inactive'],
     default: 'active'
   },
   avatar: {
     type: String,
     default: 'default-avatar.jpg'
+  },
+  bio: String,
+  location: String,
+  phone: String,
+  managedProducers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Producer'
+  }],
+  settings: {
+    notifications: {
+      email: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      sms: { type: Boolean, default: false }
+    },
+    language: { type: String, default: 'el' },
+    currency: { type: String, default: 'EUR' },
+    timezone: { type: String, default: 'Europe/Athens' }
+  },
+  preferences: {
+    theme: {
+      type: String,
+      enum: ['light', 'dark', 'system'],
+      default: 'system'
+    },
+    emailNotifications: { type: Boolean, default: true },
+    pushNotifications: { type: Boolean, default: true },
+    newsletter: { type: Boolean, default: true }
   },
   resetPasswordToken: String,
   resetPasswordExpire: Date,
@@ -42,41 +70,25 @@ const userSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  lastLogin: Date,
-  // Seller specific fields
-  commission: {
-    type: Number,
-    min: 0,
-    max: 100,
-    default: 10
-  },
-  producers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Producer'
-  }],
-  // Producer specific fields
-  company: {
-    name: String,
-    vat: String,
-    address: String,
-    phone: String
-  }
+  lastLogin: Date
+}, {
+  timestamps: true
 });
 
 // Encrypt password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function(this: UserDocument, next) {
   if (!this.isModified('password')) {
     next();
+    return;
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  next();
 });
 
 // Match password
-userSchema.methods.comparePassword = async function(enteredPassword) {
+userSchema.methods.comparePassword = async function(this: UserDocument, enteredPassword: string): Promise<boolean> {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
-
-export default User;
+export default mongoose.model<UserDocument>('User', userSchema);

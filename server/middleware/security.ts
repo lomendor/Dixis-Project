@@ -1,4 +1,6 @@
 import rateLimit from 'express-rate-limit';
+import { Request, Response, NextFunction } from 'express';
+import { CorsOptions } from 'cors';
 
 // Basic rate limiter
 export const limiter = rateLimit({
@@ -18,7 +20,7 @@ export const authLimiter = rateLimit({
 });
 
 // Security headers
-export const securityHeaders = (req, res, next) => {
+export const securityHeaders = (req: Request, res: Response, next: NextFunction): void => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
@@ -27,7 +29,7 @@ export const securityHeaders = (req, res, next) => {
 };
 
 // CORS options
-export const corsOptions = {
+export const corsOptions: CorsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL 
     : 'http://localhost:3000',

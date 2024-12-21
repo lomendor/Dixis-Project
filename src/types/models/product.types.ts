@@ -1,6 +1,5 @@
 import { Types } from 'mongoose';
 import { BaseDocument } from './base.types';
-import { Producer } from './producer.types';
 
 export enum ProductStatus {
   /** Ενεργό και διαθέσιμο προς πώληση */
@@ -121,7 +120,7 @@ export interface ProductDocument extends BaseDocument {
     keywords: string[];
   };
   /** Αν είναι σε προσφορά */
-  isPromoted?: boolean;
+  isPromoted: boolean;
   /** Τιμή προσφοράς */
   promotionPrice?: number;
   /** Ημερομηνία λήξης προσφοράς */
@@ -131,23 +130,51 @@ export interface ProductDocument extends BaseDocument {
   /** Μέγιστη ποσότητα παραγγελίας */
   maximumOrder?: number;
   /** Ετικέτες */
-  tags?: string[];
+  tags: string[];
   /** Αν είναι προτεινόμενο */
-  featured?: boolean;
+  featured: boolean;
 }
 
-export type Product = Omit<ProductDocument, keyof BaseDocument | 'producerId' | 'reviews' | 'seo'> & {
+export interface Product {
   _id: string;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  category: ProductCategory;
+  unit: ProductUnit;
+  status: ProductStatus;
+  producerId: string;
+  images: ProductImage[];
+  variants?: ProductVariant[];
+  reviews?: ProductReview[];
+  rating: number;
+  reviewsCount: number;
+  seo?: {
+    title: string;
+    description: string;
+    slug: string;
+    keywords: string[];
+  };
+  isPromoted: boolean;
+  promotionPrice?: number;
+  promotionEndsAt?: string;
+  minimumOrder?: number;
+  maximumOrder?: number;
+  tags: string[];
+  featured: boolean;
   createdAt: string;
   updatedAt: string;
-  producerId: string;
-  reviews?: ProductReview[];
-  seo?: ProductDocument['seo'];
-};
+}
 
-export type PopulatedProduct = Omit<Product, 'producerId'> & {
-  producer: Producer;
-};
+export interface PopulatedProduct extends Omit<Product, 'producerId'> {
+  producer: {
+    _id: string;
+    name: string;
+    email: string;
+    profileImage?: string;
+  };
+}
 
 export interface ProductFormData {
   name: string;
@@ -161,6 +188,7 @@ export interface ProductFormData {
   minimumOrder: number | null;
   maximumOrder: number | null;
   images: ProductImage[];
+  variants?: ProductVariant[];
   seo: ProductDocument['seo'] | null;
   tags: string[];
   isPromoted: boolean;
@@ -213,8 +241,6 @@ export interface ProductStatItem {
   icon?: React.ReactNode;
 }
 
-export type CreateProductData = Omit<Product, '_id'> & {
-  reviews: ProductReview[];
-};
+export type CreateProductData = Omit<Product, '_id' | 'createdAt' | 'updatedAt'>;
 
-export type UpdateProductData = Partial<Product>; 
+export type UpdateProductData = Partial<CreateProductData>; 
