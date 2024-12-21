@@ -1,1 +1,1 @@
-export { type Product, type ProductFilters, type ProductStats } from '@/types/product'; 
+export { type Product, type ProductFilters, type ProductStats } from '@/types/models/product.types'; 

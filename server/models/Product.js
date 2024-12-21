@@ -1,78 +1,71 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const productSchema = new mongoose.Schema({
   name: {
     type: String,
-    required: [true, 'Το όνομα προϊόντος είναι υποχρεωτικό'],
-    trim: true,
-    maxLength: [100, 'Το όνομα δεν μπορεί να υπερβαίνει τους 100 χαρακτήρες']
+    required: [true, 'Παρακαλώ εισάγετε όνομα προϊόντος'],
+    trim: true
   },
   description: {
     type: String,
-    required: [true, 'Η περιγραφή είναι υποχρεωτική'],
-    trim: true,
-    maxLength: [2000, 'Η περιγραφή δεν μπορεί να υπερβαίνει τους 2000 χαρακτήρες']
+    required: [true, 'Παρακαλώ εισάγετε περιγραφή προϊόντος']
   },
   price: {
     type: Number,
-    required: [true, 'Η τιμή είναι υποχρεωτική'],
-    min: [0, 'Η τιμή δεν μπορεί να είναι αρνητική']
+    required: [true, 'Παρακαλώ εισάγετε τιμή'],
+    min: 0
   },
   stock: {
     type: Number,
-    required: [true, 'Το απόθεμα είναι υποχρεωτικό'],
-    min: [0, 'Το απόθεμα δεν μπορεί να είναι αρνητικό'],
+    required: [true, 'Παρακαλώ εισάγετε διαθέσιμη ποσότητα'],
+    min: 0,
     default: 0
   },
   images: [{
     type: String,
-    required: [true, 'Τουλάχιστον μία εικόνα είναι υποχρεωτική']
+    required: [true, 'Παρακαλώ προσθέστε τουλάχιστον μία εικόνα']
   }],
   category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: [true, 'Η κατηγορία είναι υποχρεωτική']
+    required: [true, 'Παρακαλώ επιλέξτε κατηγορία']
   },
-  producerId: {
+  producer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: [true, 'Ο παραγωγός είναι υποχρεωτικός']
+    required: [true, 'Παρακαλώ επιλέξτε παραγωγό']
   },
   status: {
     type: String,
-    enum: {
-      values: ['active', 'inactive', 'outOfStock'],
-      message: 'Μη έγκυρη κατάσταση προϊόντος'
-    },
-    default: 'active'
+    enum: ['active', 'inactive', 'draft'],
+    default: 'draft'
   },
-  commission: {
+  rating: {
     type: Number,
-    required: [true, 'Το ποσοστό προμήθειας είναι υποχρεωτικό'],
-    min: [0, 'Το ποσοστό προμήθειας δεν μπορεί να είναι αρνητικό'],
-    max: [100, 'Το ποσοστό προμήθειας δεν μπορεί να υπερβαίνει το 100%'],
-    default: 15
+    min: 0,
+    max: 5,
+    default: 0
+  },
+  numReviews: {
+    type: Number,
+    default: 0
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
 });
 
-// Virtual field for final price including commission
-productSchema.virtual('finalPrice').get(function() {
-  return this.price * (1 + this.commission / 100);
-});
-
-// Index for text search
-productSchema.index({ name: 'text', description: 'text' });
-
-// Pre-save middleware to update status based on stock
+// Update the updatedAt timestamp before saving
 productSchema.pre('save', function(next) {
-  if (this.stock === 0) {
-    this.status = 'outOfStock';
-  }
+  this.updatedAt = new Date();
   next();
 });
 
-module.exports = mongoose.model('Product', productSchema);
+const Product = mongoose.model('Product', productSchema);
+
+export default Product;

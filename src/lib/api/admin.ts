@@ -1,4 +1,4 @@
-import api from '@utils/api';
+import { api } from '@/lib/api';
 import type { AdminStats } from '@features/admin/types/stats';
 
 export const adminApi = {

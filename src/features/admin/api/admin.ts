@@ -1,4 +1,4 @@
-import api from '@utils/api';
+import { api } from '@/lib/api';
 import type { AdminStats } from '@features/admin/types/stats';
 import type { AdminProduct } from '@features/admin/types/product';
 import type { AdminOrder } from '@features/admin/types/order';

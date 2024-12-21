@@ -1,14 +1,15 @@
 import axios from 'axios';
 import { handleApiError, showErrorToast } from '@/utils/errorHandling';
-import { ERROR_MESSAGES } from '@/types/errors';
+import { ERROR_MESSAGES } from '@/types/common/api.types';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001') + '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 });
 
 // Request interceptor
@@ -22,6 +23,12 @@ api.interceptors.request.use(
     } else {
       delete config.headers.Authorization;
     }
+
+    // Add /api prefix to all requests
+    if (!config.url?.startsWith('/api')) {
+      config.url = `/api${config.url}`;
+    }
+
     return config;
   },
   (error) => Promise.reject(handleApiError(error))
@@ -44,7 +51,7 @@ api.interceptors.response.use(
           throw error;
         }
 
-        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+        const response = await axios.post(`${API_BASE_URL}/api/auth/refresh`, {
           refreshToken
         });
 
@@ -70,8 +77,8 @@ api.interceptors.response.use(
     // Handle 404 errors
     if (error.response?.status === 404) {
       return Promise.reject({
-        code: 'NOT_FOUND',
-        message: ERROR_MESSAGES.NOT_FOUND
+        code: ERROR_MESSAGES.NOT_FOUND,
+        message: 'Δεν βρέθηκε'
       });
     }
 

@@ -3,10 +3,10 @@ import { z } from 'zod';
 import crypto from 'crypto';
 import User, { UserSchema, UserDocument } from '../models/User';
 import { NotificationService } from '../services/notificationService';
-import { CustomRequestHandler, ApiResponse } from '../types/express';
+import type { CustomRequestHandler, RefreshTokenResponse, ValidationErrorResponse } from '../types/express';
 
 // Register
-export const register: CustomRequestHandler<{}, any, z.infer<typeof UserSchema>> = async (req, res) => {
+export const register: CustomRequestHandler<{}, { message: string } | ValidationErrorResponse, z.infer<typeof UserSchema>> = async (req, res) => {
   try {
     const validatedData = UserSchema.parse(req.body);
     const user = await User.create(validatedData) as UserDocument;
@@ -28,8 +28,9 @@ export const register: CustomRequestHandler<{}, any, z.infer<typeof UserSchema>>
     if (error instanceof z.ZodError) {
       return res.json({
         status: 'error',
-        message: 'Μη έγκυρα δεδομένα',
-        data: error.errors
+        data: {
+          errors: error.errors.map(err => ({ message: err.message }))
+        }
       });
     }
 
@@ -49,7 +50,18 @@ export const register: CustomRequestHandler<{}, any, z.infer<typeof UserSchema>>
 };
 
 // Login
-export const login: CustomRequestHandler<{}, any, { email: string; password: string }> = async (req, res) => {
+interface LoginResponse {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+  token: string;
+  refreshToken: string;
+}
+
+export const login: CustomRequestHandler<{}, LoginResponse, { email: string; password: string }> = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -94,6 +106,13 @@ export const login: CustomRequestHandler<{}, any, { email: string; password: str
       { expiresIn: '1d' }
     );
 
+    // Δημιουργία refresh token
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET as string,
+      { expiresIn: '7d' }
+    );
+
     // Ενημέρωση lastLogin
     user.lastLogin = new Date();
     await user.save();
@@ -101,13 +120,14 @@ export const login: CustomRequestHandler<{}, any, { email: string; password: str
     return res.json({
       status: 'success',
       data: {
-        token,
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
           role: user.role
-        }
+        },
+        token,
+        refreshToken
       }
     });
   } catch (error) {
@@ -140,8 +160,8 @@ export const verifyEmail: CustomRequestHandler<{}, any, { token: string }> = asy
     }
 
     user.isEmailVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
+    user.verificationToken = null;
+    user.verificationTokenExpires = null;
     await user.save();
 
     return res.json({
@@ -215,8 +235,8 @@ export const resetPassword: CustomRequestHandler<{}, any, { token: string; passw
     // Validate new password
     const validatedData = UserSchema.pick({ password: true }).parse(req.body);
     user.password = validatedData.password;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
     await user.save();
 
     return res.json({
@@ -241,63 +261,66 @@ export const resetPassword: CustomRequestHandler<{}, any, { token: string; passw
 };
 
 // Refresh token
-export const refreshToken: CustomRequestHandler = async (req, res) => {
+interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export const refreshToken: CustomRequestHandler<{}, RefreshTokenResponse, RefreshTokenRequest> = async (req, res) => {
   try {
-    const user = await User.findById(req.user?._id);
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.json({
+        status: 'error',
+        message: 'Δεν παρέχεται refresh token'
+      });
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET as string) as { id: string };
+    const user = await User.findById(decoded.id);
+
     if (!user) {
       return res.json({
         status: 'error',
-        message: 'Δεν έχετε συνδεθεί'
-      } as ApiResponse);
+        message: 'Μη έγκυρο refresh token'
+      });
     }
 
     // Generate new access token
-    const accessToken = jwt.sign(
+    const token = jwt.sign(
       { id: user._id, role: user.role },
       process.env.JWT_SECRET as string,
-      { expiresIn: '15m' }
+      { expiresIn: '1d' }
     );
-
-    // Generate new refresh token
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET as string,
-      { expiresIn: '7d' }
-    );
-
-    // Update user's refresh token
-    user.refreshToken = refreshToken;
-    await user.save();
 
     return res.json({
       status: 'success',
-      data: {
-        accessToken,
-        refreshToken
-      }
-    } as ApiResponse);
+      data: { token }
+    });
   } catch (error) {
     console.error('Error in refreshToken:', error);
     return res.json({
       status: 'error',
-      message: 'Σφάλμα κατά την ανανέωση του token'
-    } as ApiResponse);
+      message: 'Μη έγκυρο ή ληγμένο refresh token'
+    });
   }
 };
 
 // Logout
-export const logout: CustomRequestHandler = async (req, res) => {
+export const logout: CustomRequestHandler<{}, { message: string }> = async (req, res) => {
   try {
     const user = await User.findById(req.user?._id);
+
     if (!user) {
       return res.json({
         status: 'error',
         message: 'Δεν έχετε συνδεθεί'
-      } as ApiResponse);
+      });
     }
 
     // Clear refresh token
-    user.refreshToken = undefined;
+    user.refreshToken = null;
     await user.save();
 
     // Update last login
@@ -307,13 +330,13 @@ export const logout: CustomRequestHandler = async (req, res) => {
     return res.json({
       status: 'success',
       message: 'Αποσυνδεθήκατε επιτυχώς'
-    } as ApiResponse);
+    });
   } catch (error) {
     console.error('Error in logout:', error);
     return res.json({
       status: 'error',
       message: 'Σφάλμα κατά την αποσύνδεση'
-    } as ApiResponse);
+    });
   }
 };
 

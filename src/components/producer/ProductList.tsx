@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Edit2, Trash2, Plus } from 'lucide-react';
 import { Dialog } from '@headlessui/react';
 import { toast } from 'react-hot-toast';
-import api from '../../utils/api';
+import { api } from '@/lib/api';
 import { ProductForm } from './ProductForm';
 import { Button } from '../ui/Button';
 

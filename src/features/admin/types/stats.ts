@@ -38,4 +38,4 @@ export interface AdminStats {
   recentOrders: RecentOrder[];
   topProducers: TopProducer[];
   productDistribution: ProductDistribution[];
-} 
+}

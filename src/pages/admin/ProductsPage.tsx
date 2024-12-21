@@ -1,12 +1,32 @@
 import { useState } from 'react';
 import { Box, Heading, Button, useToast } from '@chakra-ui/react';
 import { Plus } from 'lucide-react';
-import { useProducts } from '@/features/products/hooks/useProducts';
-import { ProductModal } from '@/components/admin/products/ProductModal';
-import { DeleteConfirmationModal } from '@/components/common/Modal/DeleteConfirmationModal';
-import { BasePage } from '@/components/common/Layout/BasePage';
-import { ProductList } from '@/components/admin/products/ProductList';
-import type { Product, ProductFormData } from '@/types/product';
+import { useProducts } from '../../features/products/hooks/useProducts';
+import { ProductModal } from '../../components/admin/products/ProductModal';
+import { DeleteConfirmationModal } from '../../components/common/Modal/DeleteConfirmationModal';
+import { BasePage } from '../../components/common/Layout/BasePage';
+import { ProductList } from '../../components/admin/products/ProductList';
+import type { Product, ProductFormData, CreateProductData, UpdateProductData } from '../../types/models/product.types';
+
+const convertFormDataToProduct = (data: ProductFormData, isNew: boolean = false): CreateProductData | UpdateProductData => {
+  if (isNew) {
+    return {
+      ...data,
+      images: data.images || [],
+      rating: 0,
+      reviewsCount: 0,
+      reviews: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      producerId: data.producerId || 'default-producer'
+    } as CreateProductData;
+  }
+
+  return {
+    ...data,
+    images: data.images || undefined,
+  } as UpdateProductData;
+};
 
 export default function ProductsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,7 +61,8 @@ export default function ProductsPage() {
   const handleModalSubmit = async (data: ProductFormData) => {
     try {
       if (selectedProduct) {
-        await updateProduct(selectedProduct._id, data);
+        const updateData = convertFormDataToProduct(data) as UpdateProductData;
+        await updateProduct(selectedProduct._id, updateData);
         toast({
           title: 'Επιτυχής ενημέρωση',
           description: 'Το προϊόν ενημερώθηκε με επιτυχία',
@@ -50,17 +71,8 @@ export default function ProductsPage() {
           isClosable: true,
         });
       } else {
-        const newProduct = {
-          ...data,
-          images: data.images || [],
-          rating: 0,
-          reviewsCount: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          producerId: data.producerId || 'default-producer'
-        };
-        
-        await addProduct(newProduct);
+        const createData = convertFormDataToProduct(data, true) as CreateProductData;
+        await addProduct(createData);
         toast({
           title: 'Επιτυχής δημιουργία',
           description: 'Το προϊόν δημιουργήθηκε με επιτυχία',

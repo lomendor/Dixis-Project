@@ -61,21 +61,30 @@ export const useAuthStore = create<AuthState>()(
           await new Promise(resolve => setTimeout(resolve, 500));
           
           const response = await api.post('/auth/login', credentials);
-          const { user, token, refreshToken } = response.data;
           
-          // Καθυστέρηση 300ms για ομαλή μετάβαση
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
-          set({ 
-            user, 
-            token, 
-            refreshToken,
-            isAuthenticated: true,
-            error: null,
-            isLoading: false
-          });
-          
-          return true;
+          if (response.data.status === 'success') {
+            const { user, token, refreshToken } = response.data.data;
+            
+            // Καθυστέρηση 300ms για ομαλή μετάβαση
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            set({ 
+              user, 
+              token, 
+              refreshToken,
+              isAuthenticated: true,
+              error: null,
+              isLoading: false
+            });
+            
+            return true;
+          } else {
+            set({ 
+              error: response.data.message || 'Σφάλμα κατά τη σύνδεση',
+              isLoading: false 
+            });
+            return false;
+          }
         } catch (err: any) {
           set({ isLoading: false });
           
@@ -86,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
           } else if (err.response?.status === 429) {
             set({ error: 'Πολλές προσπάθειες σύνδεσης. Παρακαλώ περιμένετε λίγο και δοκιμάστε ξανά.' });
           } else {
-            set({ error: 'Σφάλμα κατά τη σύνδεση. Παρακαλώ δοκιμάστε ξανά.' });
+            set({ error: err.response?.data?.message || 'Σφάλμα κατά τη σύνδεση. Παρακαλώ δοκιμάστε ξανά.' });
           }
           
           return false;
@@ -164,7 +173,7 @@ export const useAuthStore = create<AuthState>()(
         try {
           set({ isLoading: true });
           const response = await api.post('/auth/refresh', { refreshToken });
-          const { token: newToken, refreshToken: newRefreshToken } = response.data;
+          const { token: newToken, refreshToken: newRefreshToken } = response.data.data;
           
           set({ token: newToken, refreshToken: newRefreshToken });
           return true;

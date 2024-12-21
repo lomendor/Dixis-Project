@@ -1,21 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
-
-export interface ProductDocument extends Document {
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  producer: mongoose.Types.ObjectId;
-  images: string[];
-  unit: string;
-  stock: number;
-  status: 'active' | 'inactive' | 'out_of_stock';
-  rating: number;
-  reviewsCount: number;
-  sales: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from 'mongoose';
+import { ProductDocument, ProductStatus, ProductUnit, ProductCategory } from '@/types/models/product.types';
 
 const ProductSchema = new Schema({
   name: {
@@ -32,34 +16,72 @@ const ProductSchema = new Schema({
     required: true,
     min: 0
   },
-  category: {
-    type: String,
-    required: true
-  },
-  producer: {
-    type: Schema.Types.ObjectId,
-    ref: 'Producer',
-    required: true
-  },
-  images: [{
-    type: String
-  }],
-  unit: {
-    type: String,
-    required: true,
-    enum: ['kg', 'gr', 'lt', 'piece']
-  },
   stock: {
     type: Number,
     required: true,
     min: 0,
     default: 0
   },
+  category: {
+    type: String,
+    required: true,
+    enum: Object.values(ProductCategory)
+  },
+  unit: {
+    type: String,
+    required: true,
+    enum: Object.values(ProductUnit)
+  },
   status: {
     type: String,
-    enum: ['active', 'inactive', 'out_of_stock'],
-    default: 'active'
+    enum: Object.values(ProductStatus),
+    default: ProductStatus.Active
   },
+  producerId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Producer',
+    required: true
+  },
+  images: [{
+    id: String,
+    url: String,
+    alt: String,
+    isPrimary: Boolean,
+    order: Number
+  }],
+  variants: [{
+    id: String,
+    name: String,
+    sku: String,
+    price: Number,
+    stock: Number,
+    unit: {
+      type: String,
+      enum: Object.values(ProductUnit)
+    },
+    attributes: {
+      type: Map,
+      of: String
+    }
+  }],
+  reviews: [{
+    userId: {
+      type: Schema.Types.ObjectId,
+      required: true
+    },
+    rating: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 5
+    },
+    comment: String,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: Date
+  }],
   rating: {
     type: Number,
     min: 0,
@@ -70,6 +92,32 @@ const ProductSchema = new Schema({
     type: Number,
     default: 0
   },
+  seo: {
+    title: String,
+    description: String,
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+    keywords: [String]
+  },
+  isPromoted: {
+    type: Boolean,
+    default: false
+  },
+  promotionPrice: Number,
+  promotionEndsAt: Date,
+  minimumOrder: {
+    type: Number,
+    min: 0
+  },
+  maximumOrder: Number,
+  tags: [String],
+  featured: {
+    type: Boolean,
+    default: false
+  },
   sales: {
     type: Number,
     default: 0
@@ -79,9 +127,9 @@ const ProductSchema = new Schema({
 });
 
 // Αυτόματη ενημέρωση του status βάσει του stock
-ProductSchema.pre('save', function(next) {
-  if (this.stock === 0) {
-    this.status = 'out_of_stock';
+ProductSchema.pre('save', function(this: ProductDocument, next) {
+  if (this.stock === 0 && this.status !== ProductStatus.Draft) {
+    this.status = ProductStatus.OutOfStock;
   }
   next();
 });

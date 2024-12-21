@@ -27,7 +27,6 @@ export const register = async (req, res) => {
     // Create user
     const user = await User.create({
       ...req.body,
-      role: 'customer', // Default role
       status: 'active'
     });
 
@@ -55,9 +54,11 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt:', { email });
 
     // Check if email and password exist
     if (!email || !password) {
+      console.log('Missing credentials');
       return res.status(400).json({
         status: 'error',
         message: 'Παρακαλώ συμπληρώστε email και κωδικό'
@@ -66,7 +67,20 @@ export const login = async (req, res) => {
 
     // Check if user exists && password is correct
     const user = await User.findOne({ email }).select('+password');
-    if (!user || !(await user.matchPassword(password))) {
+    console.log('User found:', !!user);
+    
+    if (!user) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Λάθος email ή κωδικός'
+      });
+    }
+
+    // Check password
+    const isMatch = await user.comparePassword(password);
+    console.log('Password match:', isMatch);
+    
+    if (!isMatch) {
       return res.status(401).json({
         status: 'error',
         message: 'Λάθος email ή κωδικός'
@@ -81,25 +95,42 @@ export const login = async (req, res) => {
       });
     }
 
-    // Update last login
-    user.lastLogin = Date.now();
-    await user.save({ validateBeforeSave: false });
-
     // Generate tokens
-    const token = generateToken(user._id);
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1d' }
+    );
+
+    // Generate refresh token
     const refreshToken = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    // Remove password from output
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
     user.password = undefined;
 
-    res.json({
-      user,
-      token,
-      refreshToken
+    return res.json({
+      status: 'success',
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          avatar: user.avatar,
+          lastLogin: user.lastLogin,
+          createdAt: user.createdAt
+        },
+        token,
+        refreshToken
+      }
     });
   } catch (error) {
     console.error('Login error:', error);
@@ -250,7 +281,7 @@ export const updatePassword = async (req, res) => {
     const user = await User.findById(req.user.id).select('+password');
 
     // Check current password
-    if (!(await user.matchPassword(req.body.currentPassword))) {
+    if (!(await user.comparePassword(req.body.currentPassword))) {
       return res.status(401).json({
         status: 'error',
         message: 'Ο τρέχων κωδικός είναι λάθος'

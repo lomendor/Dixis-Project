@@ -10,12 +10,13 @@ export const UserSchema = z.object({
   password: z.string(),
   role: z.enum(['user', 'admin', 'seller']).default('user'),
   isEmailVerified: z.boolean(),
-  verificationToken: z.string().optional(),
-  verificationTokenExpires: z.date().optional(),
-  resetPasswordToken: z.string().optional(),
-  resetPasswordExpires: z.date().optional(),
+  verificationToken: z.string().nullable(),
+  verificationTokenExpires: z.date().nullable(),
+  resetPasswordToken: z.string().nullable(),
+  resetPasswordExpires: z.date().nullable(),
   lastLogin: z.date().optional(),
-  managedProducers: z.array(z.string()).optional()
+  managedProducers: z.array(z.string()).optional(),
+  refreshToken: z.string().nullable()
 });
 
 // Base interface from Zod schema
@@ -29,9 +30,7 @@ export interface UserMethods {
 }
 
 // Document type combining both
-export interface UserDocument extends Document, User, UserMethods {
-  refreshToken?: string;
-}
+export interface UserDocument extends Document, User, UserMethods {}
 
 // Model type
 export interface UserModel extends Model<UserDocument> {}
@@ -64,16 +63,31 @@ const userSchema = new Schema<UserDocument>({
     type: Boolean,
     default: false
   },
-  verificationToken: String,
-  verificationTokenExpires: Date,
-  resetPasswordToken: String,
-  resetPasswordExpires: Date,
+  verificationToken: {
+    type: String,
+    default: null
+  },
+  verificationTokenExpires: {
+    type: Date,
+    default: null
+  },
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
+  },
   lastLogin: Date,
   managedProducers: [{
     type: Schema.Types.ObjectId,
     ref: 'Producer'
   }],
-  refreshToken: String
+  refreshToken: {
+    type: String,
+    default: null
+  }
 }, {
   timestamps: true
 });

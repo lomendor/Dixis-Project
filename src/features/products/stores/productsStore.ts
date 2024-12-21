@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { api } from '@/lib/api';
-import type { Product } from '../types/product';
+import type { Product } from '@/types/models/product.types';
 
 interface ProductsState {
   products: Product[];
@@ -34,7 +34,9 @@ export const useProductsStore = create<ProductsState>()(set => ({
     try {
       set({ isLoading: true, error: null });
       const response = await api.get('/products');
-      set({ products: response.data });
+      const products = Array.isArray(response.data) ? response.data : 
+                      response.data.products ? response.data.products : [];
+      set({ products });
     } catch (err) {
       set({ error: 'Σφάλμα κατά τη φόρτωση των προϊόντων' });
       throw err;

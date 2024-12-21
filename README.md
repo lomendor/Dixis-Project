@@ -1,50 +1,42 @@
-# Dixis Marketplace
+# Dixis Project
 
-An e-commerce platform connecting Greek producers with consumers.
+Ένα σύγχρονο e-commerce σύστημα για τη διαχείριση παραγωγών και προϊόντων.
 
-## Getting Started
+## Χαρακτηριστικά
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/dixis-marketplace.git
-   cd dixis-marketplace
-   ```
+- Διαχείριση παραγωγών και προϊόντων
+- Σύστημα παραγγελιών
+- Διαχείριση χρηστών και ρόλων
+- Στατιστικά και αναφορές
+- Σύγχρονο και φιλικό προς το χρήστη περιβάλλον
 
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+## Τεχνολογίες
 
-3. Create a `.env` file based on `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
+- React
+- TypeScript
+- Express.js
+- MongoDB
+- Node.js
 
-4. Start the development server:
-   ```bash
-   npm run dev
-   ```
+## Εγκατάσταση
 
-## Environment Variables
+1. Κλωνοποιήστε το repository
+```bash
+git clone [repository-url]
+```
 
-Required environment variables:
+2. Εγκαταστήστε τις εξαρτήσεις
+```bash
+npm install
+```
 
-- `VITE_API_URL`: API base URL
-- `VITE_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
-- `MONGODB_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret for JWT tokens
-- `STRIPE_SECRET_KEY`: Stripe secret key
-- `STRIPE_WEBHOOK_SECRET`: Stripe webhook secret
+3. Δημιουργήστε ένα .env αρχείο με τις απαραίτητες μεταβλητές περιβάλλοντος
 
-## Deployment
+4. Εκκινήστε την εφαρμογή
+```bash
+npm start
+```
 
-This project is configured for automatic deployment to Vercel:
-
-1. Push your code to GitHub
-2. Connect your GitHub repository to Vercel
-3. Configure environment variables in Vercel dashboard
-4. Deploy automatically on push to main branch
-
-## License
+## Άδεια Χρήσης
 
 MIT

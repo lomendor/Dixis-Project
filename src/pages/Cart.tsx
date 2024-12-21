@@ -5,7 +5,7 @@ import { useCart } from '@/context/CartContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { CartItem } from '@/types/cart';
+import { CartItem } from '@/types/common/cart.types';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 

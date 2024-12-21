@@ -31,7 +31,7 @@ import {
   FiArrowDown,
   FiFilter
 } from 'react-icons/fi';
-import type { Product } from '@/types/product';
+import type { Product } from '@/types/models/product.types';
 
 interface ProductListProps {
   products: Product[];
@@ -44,11 +44,13 @@ type SortField = 'name' | 'category' | 'price' | 'stock' | 'status' | 'producer'
 type SortOrder = 'asc' | 'desc';
 
 export const ProductList: React.FC<ProductListProps> = ({
-  products,
+  products = [],
   onEdit,
   onDelete,
   loading = false
 }) => {
+  const productsList = Array.isArray(products) ? products : [];
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -59,13 +61,13 @@ export const ProductList: React.FC<ProductListProps> = ({
 
   // Μοναδικές κατηγορίες για το φίλτρο
   const categories = useMemo(() => {
-    const uniqueCategories = new Set(products.map(p => p.category));
+    const uniqueCategories = new Set(productsList.map(p => p.category));
     return Array.from(uniqueCategories).sort();
-  }, [products]);
+  }, [productsList]);
 
   // Φιλτράρισμα προϊόντων
   const filteredProducts = useMemo(() => {
-    return products.filter(product => {
+    return productsList.filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           product.producer?.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -75,7 +77,7 @@ export const ProductList: React.FC<ProductListProps> = ({
       
       return matchesSearch && matchesStatus && matchesCategory;
     });
-  }, [products, searchTerm, statusFilter, categoryFilter]);
+  }, [productsList, searchTerm, statusFilter, categoryFilter]);
 
   // Ταξινόμηση προϊόντων
   const sortedProducts = useMemo(() => {

@@ -1,50 +1,56 @@
 import { useQuery } from '@tanstack/react-query';
-import { AdminStats } from '../types';
-import api from '../utils/api';
+import type { AdminStats } from '@/features/admin/types/stats';
+import { api } from '@/lib/api';
 
 // Mock δεδομένα για development
 const mockStats: AdminStats = {
-  totalUsers: 150,
-  totalProducers: 45,
-  totalProducts: 234,
-  totalOrders: 567,
-  totalRevenue: 45670,
-  pendingVerifications: 12,
-  activeUsers: 89,
-  monthlyGrowth: {
-    users: 24,
-    orders: 156,
-    revenue: 12450
+  overview: {
+    totalOrders: 567,
+    totalProducts: 234,
+    totalProducers: 45,
+    totalUsers: 150,
+    revenue: 45670
   },
+  monthlySales: [
+    { month: '2024-01', sales: 12450 },
+    { month: '2023-12', sales: 10200 },
+    { month: '2023-11', sales: 9800 }
+  ],
   recentOrders: [
     {
       id: '1',
-      customerName: 'Γιώργος Παπαδόπουλος',
+      orderNumber: 'ORD-001',
+      customer: 'Γιώργος Παπαδόπουλος',
       total: 156.50,
       status: 'pending',
-      date: '2024-01-15'
+      date: new Date('2024-01-15')
     },
     {
       id: '2',
-      customerName: 'Μαρία Κωνσταντίνου',
+      orderNumber: 'ORD-002',
+      customer: 'Μαρία Κωνσταντίνου',
       total: 89.90,
       status: 'completed',
-      date: '2024-01-14'
+      date: new Date('2024-01-14')
     }
   ],
-  topProducts: [
+  topProducers: [
     {
       id: '1',
-      name: 'Έξτρα Παρθένο Ελαιόλαδο',
-      sales: 89,
-      revenue: 1780
+      name: 'Παραδοσιακό Ελαιοτριβείο',
+      totalProducts: 12,
+      totalSales: 1780
     },
     {
       id: '2',
-      name: 'Θυμαρίσιο Μέλι',
-      sales: 67,
-      revenue: 1005
+      name: 'Μελισσοκομία Κρήτης',
+      totalProducts: 8,
+      totalSales: 1005
     }
+  ],
+  productDistribution: [
+    { category: 'Ελαιόλαδο', count: 89 },
+    { category: 'Μέλι', count: 67 }
   ]
 };
 

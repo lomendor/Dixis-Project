@@ -18,12 +18,12 @@ import {
   Select,
   SelectProps,
 } from '@chakra-ui/select';
-import { Form } from '../common';
+import { Form } from '../common/Form';
 import { useProducers } from '../../../hooks/useProducers';
-import { FileUpload } from '../common';
-import type { Product, ProductFormData } from '../../../types/product';
-import { ProductCategory, ProductUnit, ProductStatus } from '../../../types/product';
-import api from '../../../lib/api';
+import { FileUpload } from '../common/FileUpload';
+import type { Product, ProductFormData } from '@/types/models/product.types';
+import { ProductCategory, ProductUnit, ProductStatus } from '@/types/models/product.types';
+import { api } from '@/lib/api';
 
 interface CustomNumberInputProps extends Omit<NumberInputProps, 'children'> {
   min?: number;

@@ -16,10 +16,11 @@ const Register = lazy(() => import('./pages/auth/RegisterPage'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPasswordPage'));
 const ResetPassword = lazy(() => import('./pages/auth/ResetPasswordPage'));
 const AdminDashboard = lazy(() => import('@/pages/admin/DashboardPage'));
-const AdminProducts = lazy(() => import('@/pages/admin/ProductsPage'));
+const AdminProducts = lazy(() => import('./pages/admin/ProductsPage'));
 const AdminProducers = lazy(() => import('@/pages/admin/ProducersPage'));
 const AdminOrders = lazy(() => import('@/pages/admin/OrdersPage'));
 const AdminUsers = lazy(() => import('@/pages/admin/UsersPage'));
+const AdminReports = lazy(() => import('@/pages/admin/Reports'));
 const AdminSettings = lazy(() => import('@/pages/admin/SettingsPage'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -77,6 +78,7 @@ export default function AppRoutes() {
           <Route path="producers" element={<Suspense fallback={<Spinner />}><AdminProducers /></Suspense>} />
           <Route path="orders" element={<Suspense fallback={<Spinner />}><AdminOrders /></Suspense>} />
           <Route path="users" element={<Suspense fallback={<Spinner />}><AdminUsers /></Suspense>} />
+          <Route path="reports" element={<Suspense fallback={<Spinner />}><AdminReports /></Suspense>} />
           <Route path="settings" element={<Suspense fallback={<Spinner />}><AdminSettings /></Suspense>} />
         </Route>
 

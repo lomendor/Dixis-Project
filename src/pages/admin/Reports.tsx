@@ -1,5 +1,7 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { Box, Heading, Tabs, TabList, Tab, TabPanels, TabPanel, Grid, Select, Spinner, Alert, AlertIcon } from '@chakra-ui/react';
+import { format } from 'date-fns';
+import { el } from 'date-fns/locale';
 import {
   LineChart,
   Line,
@@ -12,296 +14,292 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   Legend,
+  ResponsiveContainer
 } from 'recharts';
-import { format } from 'date-fns';
-import { Download } from 'lucide-react';
-import api from '../../utils/api';
+import { useAdminStats } from '@/features/admin/hooks/useAdminStats';
+import { StatsCard } from '@/components/admin/dashboard/StatsCard';
+import { FiTrendingUp, FiUsers, FiShoppingBag, FiPackage } from 'react-icons/fi';
+import type { MonthlySales, ProductDistribution, TopProducer } from '@/features/admin/types/stats';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-function Reports() {
-  const [dateRange, setDateRange] = React.useState('30');
-  const [reportType, setReportType] = React.useState('sales');
+export default function Reports() {
+  const { data: stats, isLoading, error } = useAdminStats();
+  const [timeRange, setTimeRange] = useState('month');
 
-  const { data: reportData, isLoading } = useQuery({
-    queryKey: ['admin-reports', reportType, dateRange],
-    queryFn: async () => {
-      const response = await api.get(`/admin/reports/${reportType}?range=${dateRange}`);
-      return response.data;
+  if (isLoading) {
+    return (
+      <Box p={6} display="flex" justifyContent="center" alignItems="center" minH="400px">
+        <Spinner size="xl" color="blue.500" thickness="4px" />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={6}>
+        <Alert status="error">
+          <AlertIcon />
+          Σφάλμα κατά τη φόρτωση των στατιστικών
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!stats?.overview) {
+    return (
+      <Box p={6}>
+        <Alert status="info">
+          <AlertIcon />
+          Δεν βρέθηκαν στατιστικά δεδομένα
+        </Alert>
+      </Box>
+    );
+  }
+
+  const overview = [
+    {
+      title: 'Συνολικά Έσοδα',
+      value: `€${stats.overview.revenue.toLocaleString()}`,
+      icon: FiTrendingUp,
+      trend: { value: 12.5, isPositive: true }
     },
-  });
-
-  const downloadReport = async () => {
-    try {
-      const response = await api.get(`/admin/reports/${reportType}/download?range=${dateRange}`, {
-        responseType: 'blob',
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${reportType}-report-${dateRange}days.csv`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    } catch (error) {
-      console.error('Failed to download report:', error);
+    {
+      title: 'Συνολικοί Χρήστες',
+      value: stats.overview.totalUsers.toLocaleString(),
+      icon: FiUsers,
+      trend: { value: 8.2, isPositive: true }
+    },
+    {
+      title: 'Συνολικά Προϊόντα',
+      value: stats.overview.totalProducts.toLocaleString(),
+      icon: FiShoppingBag,
+      trend: { value: 4.1, isPositive: true }
+    },
+    {
+      title: 'Συνολικές Παραγγελίες',
+      value: stats.overview.totalOrders.toLocaleString(),
+      icon: FiPackage,
+      trend: { value: 15.3, isPositive: true }
     }
-  };
-
-  if (isLoading) return <div>Loading...</div>;
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-        <div className="flex gap-4">
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-            <option value="365">Last year</option>
-          </select>
-          <select
-            value={reportType}
-            onChange={(e) => setReportType(e.target.value)}
-            className="rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="sales">Sales Report</option>
-            <option value="users">User Activity</option>
-            <option value="products">Product Performance</option>
-            <option value="categories">Category Analysis</option>
-          </select>
-          <button
-            onClick={downloadReport}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
-          >
-            <Download className="h-5 w-5" />
-            Download Report
-          </button>
-        </div>
-      </div>
+    <Box p={6} maxW="7xl" mx="auto">
+      <Box mb={6}>
+        <Heading size="lg" mb={4}>Αναφορές & Στατιστικά</Heading>
+        
+        <Select
+          value={timeRange}
+          onChange={(e) => setTimeRange(e.target.value)}
+          maxW="xs"
+          mb={6}
+        >
+          <option value="week">Τελευταία Εβδομάδα</option>
+          <option value="month">Τελευταίος Μήνας</option>
+          <option value="quarter">Τελευταίο Τρίμηνο</option>
+          <option value="year">Τελευταίο Έτος</option>
+        </Select>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {reportType === 'sales' && (
-          <>
-            {/* Revenue Trend */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Revenue Trend</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={reportData?.revenueTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(date) => format(new Date(date), 'MMM d')}
-                    />
-                    <YAxis />
-                    <Tooltip
-                      labelFormatter={(date) => format(new Date(date), 'MMM d, yyyy')}
-                      formatter={(value) => [`€${value}`, 'Revenue']}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#0088FE"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+        {/* Overview Cards */}
+        <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' }} gap={6} mb={8}>
+          {overview.map((stat) => (
+            <StatsCard key={stat.title} {...stat} />
+          ))}
+        </Grid>
+      </Box>
 
-            {/* Orders by Status */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Orders by Status</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportData?.ordersByStatus}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                    >
-                      {reportData?.ordersByStatus.map((entry: any, index: number) => (
-                        <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </>
-        )}
+      <Tabs>
+        <TabList>
+          <Tab>Πωλήσεις</Tab>
+          <Tab>Χρήστες</Tab>
+          <Tab>Προϊόντα</Tab>
+        </TabList>
 
-        {reportType === 'users' && (
-          <>
-            {/* User Registration Trend */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">New User Registrations</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportData?.registrationTrend}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(date) => format(new Date(date), 'MMM d')}
-                    />
-                    <YAxis />
-                    <Tooltip
-                      labelFormatter={(date) => format(new Date(date), 'MMM d, yyyy')}
-                    />
-                    <Bar dataKey="count" fill="#0088FE" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* User Types Distribution */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">User Types Distribution</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportData?.userTypes}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                    >
-                      {reportData?.userTypes.map((entry: any, index: number) => (
-                        <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </>
-        )}
-
-        {reportType === 'products' && (
-          <>
-            {/* Top Selling Products */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Top Selling Products</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    layout="vertical"
-                    data={reportData?.topProducts}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      width={150}
-                    />
-                    <Tooltip />
-                    <Bar dataKey="sales" fill="#0088FE" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Product Stock Levels */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Stock Levels</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportData?.stockLevels}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label
-                    >
-                      {reportData?.stockLevels.map((entry: any, index: number) => (
-                        <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </>
-        )}
-
-        {reportType === 'categories' && (
-          <>
-            {/* Sales by Category */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Sales by Category</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportData?.categoryPerformance}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="sales" fill="#0088FE" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Category Growth */}
-            <div className="bg-white p-6 rounded-lg shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Category Growth</h2>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={reportData?.categoryGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(date) => format(new Date(date), 'MMM d')}
-                    />
-                    <YAxis />
-                    <Tooltip
-                      labelFormatter={(date) => format(new Date(date), 'MMM d, yyyy')}
-                    />
-                    {reportData?.categories.map((category: string, index: number) => (
-                      <Line
-                        key={category}
-                        type="monotone"
-                        dataKey={category}
-                        stroke={COLORS[index % COLORS.length]}
-                        strokeWidth={2}
+        <TabPanels>
+          {/* Sales Tab */}
+          <TabPanel>
+            <Grid templateColumns={{ base: '1fr', lg: 'repeat(2, 1fr)' }} gap={6}>
+              {/* Monthly Sales Trend */}
+              <Box bg="white" p={6} borderRadius="lg" shadow="sm">
+                <Heading size="md" mb={4}>Τάση Πωλήσεων</Heading>
+                <Box h="300px">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={stats.monthlySales}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="month" 
+                        tickFormatter={(date: string) => format(new Date(date), 'MMM yy')}
                       />
-                    ))}
-                    <Legend />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
+                      <YAxis />
+                      <Tooltip 
+                        labelFormatter={(date: string) => format(new Date(date), 'MMMM yyyy')}
+                        formatter={(value: number) => [`€${value}`, 'Πωλήσεις']}
+                      />
+                      <Legend />
+                      <Line type="monotone" dataKey="sales" stroke="#0088FE" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Box>
+
+              {/* Product Distribution */}
+              <Box bg="white" p={6} borderRadius="lg" shadow="sm">
+                <Heading size="md" mb={4}>Κατανομή Προϊόντων</Heading>
+                <Box h="300px">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.productDistribution}
+                        dataKey="count"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {stats.productDistribution.map((entry: ProductDistribution, index: number) => (
+                          <Cell key={entry.category} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Box>
+            </Grid>
+          </TabPanel>
+
+          {/* Users Tab */}
+          <TabPanel>
+            <Grid templateColumns={{ base: '1fr', lg: 'repeat(2, 1fr)' }} gap={6}>
+              {/* Top Producers */}
+              <Box bg="white" p={6} borderRadius="lg" shadow="sm">
+                <Heading size="md" mb={4}>Κορυφαίοι Παραγωγοί</Heading>
+                <Box h="300px">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={stats.topProducers}
+                      margin={{ left: 100 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis 
+                        type="category" 
+                        dataKey="name" 
+                        width={100}
+                      />
+                      <Tooltip formatter={(value: number) => [`€${value}`, 'Πωλήσεις']} />
+                      <Bar dataKey="totalSales" fill="#0088FE" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Box>
+
+              {/* Recent Orders */}
+              <Box bg="white" p={6} borderRadius="lg" shadow="sm">
+                <Heading size="md" mb={4}>Πρόσφατες Παραγγελίες</Heading>
+                <Box overflowX="auto">
+                  <table className="min-w-full">
+                    <thead>
+                      <tr>
+                        <th className="px-4 py-2 text-left">Αριθμός</th>
+                        <th className="px-4 py-2 text-left">Πελάτης</th>
+                        <th className="px-4 py-2 text-left">Ποσό</th>
+                        <th className="px-4 py-2 text-left">Κατάσταση</th>
+                        <th className="px-4 py-2 text-left">Ημερομηνία</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.recentOrders.map((order) => (
+                        <tr key={order.id}>
+                          <td className="px-4 py-2">{order.orderNumber}</td>
+                          <td className="px-4 py-2">{order.customer}</td>
+                          <td className="px-4 py-2">€{order.total}</td>
+                          <td className="px-4 py-2">
+                            <span className={`px-2 py-1 rounded-full text-xs ${
+                              order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {order.status === 'completed' ? 'Ολοκληρώθηκε' :
+                               order.status === 'pending' ? 'Σε Εκκρεμότητα' :
+                               'Σε Επεξεργασία'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-2">
+                            {format(new Date(order.date), 'dd/MM/yyyy')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Box>
+              </Box>
+            </Grid>
+          </TabPanel>
+
+          {/* Products Tab */}
+          <TabPanel>
+            <Grid templateColumns={{ base: '1fr', lg: 'repeat(2, 1fr)' }} gap={6}>
+              {/* Product Distribution */}
+              <Box bg="white" p={6} borderRadius="lg" shadow="sm">
+                <Heading size="md" mb={4}>Κατανομή ανά Κατηγορία</Heading>
+                <Box h="300px">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.productDistribution}
+                        dataKey="count"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {stats.productDistribution.map((entry: ProductDistribution, index: number) => (
+                          <Cell key={entry.category} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Box>
+
+              {/* Top Products */}
+              <Box bg="white" p={6} borderRadius="lg" shadow="sm">
+                <Heading size="md" mb={4}>Κορυφαία Προϊόντα</Heading>
+                <Box h="300px">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={[
+                        { name: 'Βιολογικό Μέλι', sales: 245 },
+                        { name: 'Ελαιόλαδο Extra', sales: 189 },
+                        { name: 'Φέτα ΠΟΠ', sales: 156 },
+                        { name: 'Κρασί Νεμέας', sales: 134 },
+                        { name: 'Γραβιέρα', sales: 112 }
+                      ]}
+                      margin={{ left: 100 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" />
+                      <YAxis type="category" dataKey="name" width={100} />
+                      <Tooltip />
+                      <Bar dataKey="sales" fill="#0088FE" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              </Box>
+            </Grid>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
+    </Box>
   );
 }
-
-export default Reports;

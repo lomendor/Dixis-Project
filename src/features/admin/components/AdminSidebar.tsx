@@ -7,9 +7,9 @@ import {
   FiShoppingBag, 
   FiUsers, 
   FiSettings, 
-  FiBarChart2,
   FiShield,
-  FiPackage
+  FiPackage,
+  FiBarChart
 } from 'react-icons/fi';
 import { Leaf } from 'lucide-react';
 
@@ -17,7 +17,7 @@ const navigation = [
   { 
     name: 'Αρχική',
     icon: FiHome,
-    href: '/admin/dashboard',
+    href: '/admin',
     description: 'Επισκόπηση συστήματος'
   },
   { 
@@ -39,16 +39,16 @@ const navigation = [
     description: 'Διαχείριση παραγγελιών'
   },
   { 
-    name: 'Αναφορές',
-    icon: FiBarChart2,
-    href: '/admin/reports',
-    description: 'Αναφορές & Στατιστικά'
-  },
-  { 
     name: 'Χρήστες',
     icon: FiShield,
     href: '/admin/users',
     description: 'Διαχείριση χρηστών'
+  },
+  { 
+    name: 'Αναφορές',
+    icon: FiBarChart,
+    href: '/admin/reports',
+    description: 'Στατιστικά & Αναφορές'
   },
   { 
     name: 'Ρυθμίσεις',
@@ -91,7 +91,9 @@ export const AdminSidebar: React.FC = () => {
       {/* Navigation Items */}
       <VStack gap="2" align="stretch">
         {navigation.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive = item.href === '/admin' 
+            ? location.pathname === '/admin'
+            : location.pathname.startsWith(item.href);
           return (
             <RouterLink
               key={item.name}

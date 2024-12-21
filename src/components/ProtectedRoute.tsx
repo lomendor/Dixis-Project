@@ -1,4 +1,4 @@
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
 interface ProtectedRouteProps {
@@ -7,9 +7,9 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, isLoading, isAdmin } = useAuthContext();
+  const { user, loading, isAdmin } = useAuth();
 
-  if (isLoading) {
+  if (loading) {
     return <div>Loading...</div>;
   }
 

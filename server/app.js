@@ -3,6 +3,8 @@ import cors from 'cors';
 // import passport from 'passport';
 import session from 'express-session';
 // import './config/passport.js';  // Εισαγωγή της διαμόρφωσης του Passport
+import adminRoutes from './routes/admin.js';
+import authRoutes from './routes/auth.js';
 
 const app = express();
 
@@ -19,8 +21,14 @@ app.use(cors({
     
     callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
+// Body parser
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Session middleware (απαραίτητο για το Passport)
 app.use(session({
@@ -38,6 +46,10 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 */
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Υπόλοιπο middleware και routes...
 

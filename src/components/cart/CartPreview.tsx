@@ -1,5 +1,5 @@
 import { useCart } from '@/context/CartContext';
-import type { CartItem } from '@/types/cart';
+import type { CartItem } from '@/types/common/cart.types';
 import { Link } from 'react-router-dom';
 import { X, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';

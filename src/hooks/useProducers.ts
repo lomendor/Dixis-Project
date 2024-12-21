@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { Producer, NewProducer } from '@/types';
-import api from '@/lib/api';
+import type { Producer } from '@/types/models/producer.types';
+import { api } from '@/lib/api';
+
+type NewProducer = Omit<Producer, '_id' | 'createdAt' | 'updatedAt'>;
 
 interface Pagination {
   total: number;

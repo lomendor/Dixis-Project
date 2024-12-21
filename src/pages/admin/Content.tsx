@@ -3,8 +3,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Plus, Edit2, Trash2 } from 'lucide-react';
 import { Dialog } from '@headlessui/react';
-import api from '../../utils/api';
-import type { Category, Announcement } from '../../types';
+import { api } from '@/lib/api';
+import type { BaseModel } from '@/types/models/base.types';
+
+interface Category extends BaseModel {
+  name: string;
+  description: string;
+  image?: string;
+  active: boolean;
+  productsCount: number;
+  parentId?: string;
+  order: number;
+}
+
+interface Announcement extends BaseModel {
+  title: string;
+  content: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  active: boolean;
+  startDate: string;
+  endDate: string;
+}
 
 function Content() {
   const [selectedCategory, setSelectedCategory] = React.useState<Category | null>(null);

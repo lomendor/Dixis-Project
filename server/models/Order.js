@@ -20,32 +20,34 @@ const orderSchema = new mongoose.Schema({
     price: {
       type: Number,
       required: true,
+      min: 0,
     },
   }],
   total: {
     type: Number,
     required: true,
+    min: 0,
   },
   status: {
     type: String,
-    enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'payment_failed'],
+    enum: ['pending', 'processing', 'completed', 'cancelled'],
     default: 'pending',
-  },
-  paymentStatus: {
-    type: String,
-    enum: ['pending', 'paid', 'failed', 'refunded'],
-    default: 'pending',
-  },
-  transactionId: {
-    type: String,
   },
   shippingAddress: {
-    fullName: String,
     street: String,
     city: String,
     postalCode: String,
     country: String,
-    phone: String,
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['card', 'cash', 'bank_transfer'],
+    required: true,
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'pending',
   },
   createdAt: {
     type: Date,
@@ -63,4 +65,6 @@ orderSchema.pre('save', function(next) {
   next();
 });
 
-export default mongoose.model('Order', orderSchema);
+const Order = mongoose.model('Order', orderSchema);
+
+export default Order;

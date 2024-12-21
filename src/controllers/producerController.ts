@@ -1,10 +1,11 @@
-import type { Request, Response } from 'express';
-import type { CustomRequestHandler, ApiResponse } from '../types/express';
-import Producer, { ProducerDocument } from '../models/Producer';
-import Product from '../models/Product';
-import Order, { OrderDocument, OrderItem } from '../models/Order';
+import type { Response } from '../types/express';
+import type { CustomRequestHandler } from '../types/express';
+import type { ApiResponse } from '@/types/common/api.types';
+import type { ProducerDocument, UpdateProducerBody } from '@/types/models/producer.types';
+import type { WithId } from '@/types/models/base.types';
+import Producer from '../models/Producer';
 import { z } from 'zod';
-import mongoose, { Document } from 'mongoose';
+import { Types } from 'mongoose';
 
 // Validation schemas
 const ProducerSchema = z.object({
@@ -12,7 +13,28 @@ const ProducerSchema = z.object({
   email: z.string().email(),
   phone: z.string(),
   address: z.string().optional(),
-  description: z.string().optional()
+  description: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'pending']).default('pending'),
+  certifications: z.array(z.object({
+    name: z.string(),
+    issuer: z.string(),
+    validUntil: z.date(),
+    documentUrl: z.string(),
+    status: z.enum(['active', 'expired', 'pending']).default('pending')
+  })).default([]),
+  documents: z.array(z.object({
+    name: z.string(),
+    type: z.string(),
+    url: z.string(),
+    status: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+    uploadedAt: z.date(),
+    expiresAt: z.date().optional()
+  })).default([]),
+  statusHistory: z.array(z.object({
+    status: z.string(),
+    comment: z.string().optional(),
+    date: z.date()
+  })).default([])
 });
 
 // Get all producers
@@ -91,7 +113,7 @@ export const createProducer: CustomRequestHandler = async (req, res) => {
 // Update producer
 export const updateProducer: CustomRequestHandler = async (req, res) => {
   try {
-    const validatedData = ProducerSchema.partial().parse(req.body);
+    const validatedData = ProducerSchema.partial().parse(req.body) as UpdateProducerBody;
     const producer = await Producer.findByIdAndUpdate(
       req.params.id,
       validatedData,
@@ -154,7 +176,7 @@ export const deleteProducer: CustomRequestHandler = async (req, res) => {
 // Bulk action
 export const bulkAction: CustomRequestHandler = async (req, res) => {
   try {
-    const { ids, action } = req.body;
+    const { ids, action } = req.body as { ids: string[]; action: string };
 
     switch (action) {
       case 'delete':
@@ -195,7 +217,7 @@ export const bulkAction: CustomRequestHandler = async (req, res) => {
 // Document management
 export const addDocument: CustomRequestHandler = async (req, res) => {
   try {
-    const producer = await Producer.findById(req.params.id);
+    const producer = await Producer.findById(req.params.id) as WithId<ProducerDocument>;
     if (!producer) {
       return res.json({
         status: 'error',
@@ -203,11 +225,14 @@ export const addDocument: CustomRequestHandler = async (req, res) => {
       } as ApiResponse);
     }
 
-    producer.documents.push({
+    const newDocument = {
       ...req.body,
-      status: 'pending'
-    });
+      status: 'pending' as const,
+      uploadedAt: new Date(),
+      _id: new Types.ObjectId()
+    };
 
+    producer.documents.push(newDocument);
     await producer.save();
 
     return res.json({
@@ -227,9 +252,9 @@ export const addDocument: CustomRequestHandler = async (req, res) => {
 export const updateDocumentStatus: CustomRequestHandler = async (req, res) => {
   try {
     const { producerId, documentId } = req.params;
-    const { status, comment } = req.body;
+    const { status, comment } = req.body as { status: 'pending' | 'approved' | 'rejected'; comment?: string };
 
-    const producer = await Producer.findById(producerId);
+    const producer = await Producer.findById(producerId) as WithId<ProducerDocument>;
     if (!producer) {
       return res.json({
         status: 'error',
@@ -238,7 +263,7 @@ export const updateDocumentStatus: CustomRequestHandler = async (req, res) => {
     }
 
     const document = producer.documents.find(doc => 
-      (doc as any)._id.toString() === documentId
+      doc._id?.toString() === documentId
     );
     if (!document) {
       return res.json({
@@ -248,7 +273,14 @@ export const updateDocumentStatus: CustomRequestHandler = async (req, res) => {
     }
 
     document.status = status;
-    if (comment) document.comment = comment;
+    if (comment) {
+      document.comments = document.comments || [];
+      document.comments.push({
+        text: comment,
+        date: new Date()
+      });
+    }
+
     await producer.save();
 
     return res.json({
@@ -269,7 +301,7 @@ export const deleteDocument: CustomRequestHandler = async (req, res) => {
   try {
     const { producerId, documentId } = req.params;
 
-    const producer = await Producer.findById(producerId);
+    const producer = await Producer.findById(producerId) as WithId<ProducerDocument>;
     if (!producer) {
       return res.json({
         status: 'error',
@@ -278,7 +310,7 @@ export const deleteDocument: CustomRequestHandler = async (req, res) => {
     }
 
     producer.documents = producer.documents.filter(doc => 
-      (doc as any)._id?.toString() !== documentId
+      doc._id?.toString() !== documentId
     );
     await producer.save();
 
@@ -295,198 +327,6 @@ export const deleteDocument: CustomRequestHandler = async (req, res) => {
   }
 };
 
-// Get producer stats
-export const getProducerStats: CustomRequestHandler = async (req, res) => {
-  try {
-    const producerId = req.params.id;
-    const timeframe = (req.query.timeframe as string) || '30d';
-
-    const producer = await Producer.findById(producerId);
-    if (!producer) {
-      return res.json({
-        status: 'error',
-        message: 'Ο παραγωγός δεν βρέθηκε'
-      } as ApiResponse);
-    }
-
-    const stats = {
-      totalOrders: 0,
-      totalRevenue: 0,
-      activeProducts: 0,
-      pendingDocuments: 0,
-      expiringDocuments: 0
-    };
-
-    // Get orders stats
-    const orders = await Order.find({
-      'items.producer': producerId,
-      createdAt: { $gte: getDateFromTimeframe(timeframe) }
-    });
-
-    stats.totalOrders = orders.length;
-    stats.totalRevenue = orders.reduce((sum: number, order: OrderDocument) => {
-      const producerItems = order.items.filter((item: OrderItem) => 
-        item.producer.toString() === producerId
-      );
-      return sum + producerItems.reduce((itemSum: number, item: OrderItem) => 
-        itemSum + (item.price * item.quantity), 0
-      );
-    }, 0);
-
-    // Get product stats
-    stats.activeProducts = await Product.countDocuments({
-      producer: producerId,
-      status: 'active'
-    });
-
-    // Get document stats
-    stats.pendingDocuments = producer.documents.filter(
-      doc => doc.status === 'pending'
-    ).length;
-
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    stats.expiringDocuments = producer.documents.filter(doc => {
-      if (!doc.expiryDate) return false;
-      return doc.expiryDate <= thirtyDaysFromNow && doc.status === 'active';
-    }).length;
-
-    return res.json({
-      status: 'success',
-      data: stats
-    } as ApiResponse);
-  } catch (error) {
-    console.error('Error in getProducerStats:', error);
-    return res.json({
-      status: 'error',
-      message: 'Σφάλμα κατά την ανάκτηση των στατιστικών'
-    } as ApiResponse);
-  }
-};
-
-// Helper function for timeframe
-function getDateFromTimeframe(timeframe: string): Date {
-  const date = new Date();
-  switch (timeframe) {
-    case '7d':
-      date.setDate(date.getDate() - 7);
-      break;
-    case '30d':
-      date.setDate(date.getDate() - 30);
-      break;
-    case '90d':
-      date.setDate(date.getDate() - 90);
-      break;
-    case '1y':
-      date.setFullYear(date.getFullYear() - 1);
-      break;
-    default:
-      date.setDate(date.getDate() - 30);
-  }
-  return date;
-}
-
-// Get expiring documents
-export const getExpiringDocuments: CustomRequestHandler = async (req, res) => {
-  try {
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    const producers = await Producer.find({
-      'documents.expiryDate': {
-        $gte: new Date(),
-        $lte: thirtyDaysFromNow
-      },
-      'documents.status': 'active'
-    });
-
-    const expiringDocs = producers.flatMap(producer => 
-      producer.documents
-        .filter(doc => {
-          if (!doc.expiryDate) return false;
-          return doc.expiryDate <= thirtyDaysFromNow && doc.status === 'active';
-        })
-        .map(doc => ({
-          producer: {
-            id: producer._id,
-            name: producer.name,
-            email: producer.email
-          },
-          document: doc
-        }))
-    );
-
-    return res.json({
-      status: 'success',
-      data: expiringDocs
-    } as ApiResponse);
-  } catch (error) {
-    console.error('Error in getExpiringDocuments:', error);
-    return res.json({
-      status: 'error',
-      message: 'Σφάλμα κατά την ανάκτηση των εγγράφων που λήγουν'
-    } as ApiResponse);
-  }
-};
-
-// Get producer certifications
-export const getProducerCertifications: CustomRequestHandler = async (req, res) => {
-  try {
-    const producer = await Producer.findById(req.params.id)
-      .select('certifications');
-
-    if (!producer) {
-      return res.json({
-        status: 'error',
-        message: 'Ο παραγωγός δεν βρέθηκε'
-      } as ApiResponse);
-    }
-
-    return res.json({
-      status: 'success',
-      data: producer.certifications
-    } as ApiResponse);
-  } catch (error) {
-    console.error('Error in getProducerCertifications:', error);
-    return res.json({
-      status: 'error',
-      message: 'Σφάλμα κατά την ανάκτηση των πιστοποιήσεων'
-    } as ApiResponse);
-  }
-};
-
-// Add certification
-export const addCertification: CustomRequestHandler = async (req, res) => {
-  try {
-    const producer = await Producer.findById(req.params.id);
-    if (!producer) {
-      return res.json({
-        status: 'error',
-        message: 'Ο παραγωγός δεν βρέθηκε'
-      } as ApiResponse);
-    }
-
-    producer.certifications.push({
-      ...req.body,
-      status: 'pending'
-    });
-
-    await producer.save();
-
-    return res.json({
-      status: 'success',
-      message: 'Η πιστοποίηση προστέθηκε επιτυχώς'
-    } as ApiResponse);
-  } catch (error) {
-    console.error('Error in addCertification:', error);
-    return res.json({
-      status: 'error',
-      message: 'Σφάλμα κατά την προσθήκη της πιστοποίησης'
-    } as ApiResponse);
-  }
-};
-
 // Get expiring certifications
 export const getExpiringCertifications: CustomRequestHandler = async (req, res) => {
   try {
@@ -499,7 +339,7 @@ export const getExpiringCertifications: CustomRequestHandler = async (req, res) 
         $lte: thirtyDaysFromNow
       },
       'certifications.status': 'active'
-    });
+    }) as WithId<ProducerDocument>[];
 
     const expiringCerts = producers.flatMap(producer => 
       producer.certifications

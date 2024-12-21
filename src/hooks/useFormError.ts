@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ApiError } from '@/types/errors';
+import { ApiError } from '@/types/common/api.types';
 import { handleFormError } from '@/utils/errorHandling';
 
 export const useFormError = () => {

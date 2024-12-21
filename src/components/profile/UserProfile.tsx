@@ -1,10 +1,10 @@
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { Tab } from '@headlessui/react';
 import { User, ShoppingBag, Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function UserProfile() {
-  const { user, error } = useAuthContext();
+  const { user, error } = useAuth();
 
   if (!user) {
     return null;

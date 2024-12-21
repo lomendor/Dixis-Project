@@ -67,10 +67,19 @@ export default function LoginPage() {
           position: 'top-center',
           duration: 2000
         });
+      } else if (authError) {
+        toast.error(authError, {
+          position: 'top-center',
+          duration: 3000
+        });
       }
     } catch (err) {
       toast.dismiss(loadingToast);
       console.error('Σφάλμα κατά τη σύνδεση:', err);
+      toast.error('Σφάλμα κατά τη σύνδεση. Παρακαλώ δοκιμάστε ξανά.', {
+        position: 'top-center',
+        duration: 3000
+      });
     }
   };
 

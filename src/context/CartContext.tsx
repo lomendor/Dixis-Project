@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import type { Product } from '@/types/product';
-import type { CartItem, Cart } from '@/types/cart';
-import { productToCartItem } from '@/types/cart';
+import type { Product } from '@/types/models/product.types';
+import type { CartItem, Cart } from '@/types/common/cart.types';
+import { productToCartItem } from '@/types/common/cart.types';
 
 interface CartContextType extends Cart {
   addItem: (product: Product, quantity?: number) => void;
@@ -41,7 +41,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         );
       }
 
-      return [...currentItems, productToCartItem(product, quantity)];
+      return [...currentItems, { ...productToCartItem(product), quantity }];
     });
   };
 

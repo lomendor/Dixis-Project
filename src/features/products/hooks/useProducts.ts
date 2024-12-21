@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useProductsStore } from '../stores/productsStore';
-import type { Product } from '../types/product';
+import type { Product } from '@/types/models/product.types';
 
 interface UseProductsError {
   message: string;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { CartPreview } from '@/components/cart/CartPreview';
 import { Button } from '@/components/ui/Button';
@@ -29,8 +29,8 @@ const menuItems = [
 export function Header() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, isAuthenticated, openAuthModal } = useAuthContext();
-  const isUserAdmin = useAuthContext().isAdmin();
+  const { logout, isAuthenticated } = useAuth();
+  const isUserAdmin = useAuth().isAdmin();
   const { totalItems } = useCart();
   const [showCartPreview, setShowCartPreview] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -64,25 +64,23 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo - Αριστερά */}
-          <div className="flex-shrink-0 ml-4">
-            <Link to="/" className="block">
-              <img 
-                src="/logo.png" 
-                alt="Dixis" 
-                className="h-12 w-auto transition-transform hover:scale-105"
-              />
-            </Link>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/dixis-logo.png" 
+              alt="Dixis Logo" 
+              className="h-8 w-auto transition-transform hover:scale-105" 
+            />
+          </Link>
 
-          {/* Κεντρικό Navigation */}
-          <nav className="hidden md:flex items-center gap-8 flex-1 justify-center">
+          {/* Navigation - Κέντρο */}
+          <nav className="hidden md:flex items-center space-x-8">
             {mainNavItems.map(item => (
               <Link
                 key={item.href}
                 to={item.href}
                 className={cn(
-                  "text-gray-600 hover:text-emerald-600 transition-colors font-medium text-lg",
-                  location.pathname === item.href && "text-emerald-600"
+                  "text-gray-600 hover:text-emerald-600 transition-colors",
+                  location.pathname === item.href && "text-emerald-600 font-medium"
                 )}
               >
                 {item.label}
@@ -90,16 +88,20 @@ export function Header() {
             ))}
           </nav>
 
-          {/* Δεξί τμήμα */}
-          <div className="flex items-center gap-4 ml-auto">
+          {/* Actions - Δεξιά */}
+          <div className="flex items-center space-x-2">
             {/* Search */}
-            <div className="hidden md:flex relative">
-              <Input
-                type="text"
-                placeholder="Αναζήτηση..."
-                className="w-64 pl-10 pr-4 rounded-full border-gray-200 focus:border-emerald-500 focus:ring-emerald-500"
-              />
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <div className="hidden md:flex items-center">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <SearchIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <Input
+                  type="search"
+                  placeholder="Αναζήτηση..."
+                  className="pl-10 w-64"
+                />
+              </div>
             </div>
 
             {/* Cart */}
@@ -139,7 +141,7 @@ export function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={openAuthModal}
+                onClick={() => navigate('/login')}
                 className="relative hover:bg-emerald-50 group"
                 aria-label="Σύνδεση"
               >

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Dialog } from '@headlessui/react';
 import { X, Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { useAuthContext } from '@/context/AuthContext';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
@@ -16,7 +16,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login, isAdmin } = useAuthContext();
+  const { login, isAdmin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {

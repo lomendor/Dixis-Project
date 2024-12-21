@@ -7,7 +7,6 @@ import { Spinner, Box, Text } from '@chakra-ui/react';
 import theme from './theme';
 import AppRoutes from './Routes';
 import { CartProvider } from './context/CartContext';
-import { AuthProvider } from './context/AuthContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,17 +43,22 @@ function ErrorFallback({ error }: { error: Error }) {
 }
 
 function App() {
+  const router = {
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true
+    }
+  };
+
   return (
-    <BrowserRouter>
+    <BrowserRouter {...router}>
       <QueryClientProvider client={queryClient}>
         <ChakraProvider theme={theme}>
           <ErrorBoundary FallbackComponent={ErrorFallback}>
             <Suspense fallback={<LoadingFallback />}>
-              <AuthProvider>
-                <CartProvider>
-                  <AppRoutes />
-                </CartProvider>
-              </AuthProvider>
+              <CartProvider>
+                <AppRoutes />
+              </CartProvider>
             </Suspense>
           </ErrorBoundary>
         </ChakraProvider>
